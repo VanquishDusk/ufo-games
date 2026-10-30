@@ -39,7 +39,7 @@ orb, and F10 adds $500.
 | Space / C | Jump / crouch (crouching steadies your hands) |
 | Right mouse (hold) or Q (toggle) | Raise camera |
 | Left mouse | Take photo |
-| Wheel, `+`, `-` | Zoom (when your camera has zoom) |
+| `Z` / `X` (or wheel, `+`, `-`) | Zoom in / out (when your camera has zoom) |
 | G | Flash mode: auto, on, off |
 | R | Swap film roll (cycles film types, wastes unused frames) |
 | F / B / T | Flashlight / binoculars / tripod (once you own them) |
@@ -96,13 +96,29 @@ the photo S through F on sharpness, exposure and framing.
 
 **Economy and progression.**
 - *Sell* from **UFO-NET** on your home PC. Buyers: Lenny's BBS (pays $1–4 for spooky
-  non-UFO shots, 3 a day, and half price for real sightings), The Weekly Probe (tabloid, tolerates blur),
-  Dr. Ingrid Vos (pays well, wants sharp evidence), KCHV Channel 7 (unlocks after 3 sightings
+  non-UFO shots, 3 a day, and a quarter of the value for real sightings), The Weekly Probe (tabloid, tolerates blur),
+  Dr. Ingrid Vos (wants sharp evidence), KCHV Channel 7 (unlocks after 3 sightings
   sold) and a locked `???` buyer as a story hook. Reputation raises prices, and repeat photos of
   the same sighting are discounted.
+- *The market pushes back.* Every sale of a kind floods the market (-20% per recent sale,
+  recovering each morning), and a sighting already sold to one buyer isn't exclusive any more
+  (-55% everywhere else).
+- *Risk.* Every offer shows its risk. The Probe pays by **check** that clears the next morning,
+  and the bigger the check, the likelier it bounces (4% up to 40%). KCHV and M. Gray pay the most
+  but add **attention** (heat) in proportion to the money. Lenny and Vos are safe. Attention
+  fades by 8 a day; past 25 Lenny warns you, and past 45 there's a growing chance each morning
+  that men in dark suits **seize every unsold sighting photo and fine you 30% of your cash**.
+- *Jobs.* Buyers post requests on the **JOBS** tab (a specific craft, a minimum grade, a 3–5 day
+  deadline). Sell them a matching photo in time for a bonus of $50–$1100.
+- *Field log.* The **FIELD LOG** tab tracks every kind you've documented. The first clear photo of
+  each kind earns a one-time bounty ($15 common up to $500 legend).
+- *Bills.* Your phone line and UFO-NET access cost $35 a week (rising $15 a week to $150),
+  taken every Sunday morning. In the red, you can't mail-order anything.
 - *Buy* film and a flashlight at the Qwik Stop, or mail-order gear from the Skywatcher Supply
-  Co. catalog. Orders land on your porch at 8 AM the next day: a 3x zoom point-and-shoot, an SLR,
-  200mm and 500mm lenses, a tripod, binoculars, a stabilizer grip and a pro flash.
+  Co. catalog. Orders land on your porch at 8 AM the next day: a 3x zoom point-and-shoot ($320),
+  an SLR ($1100), 200mm ($850) and 500mm ($2400) lenses, a tripod, binoculars, a stabilizer grip,
+  a pro flash, a **police scanner** ($450, calls in each sighting with a rough direction) and a
+  **home darkroom** ($1800, +20% on every sale).
 - *Inbox* email from Lenny, the Probe and the catalog sets up the premise and the tips.
 - *Sleep* at home to skip to dusk, midnight or morning. Knock on neighbors' doors for gossip
   (some of it is UFO lore). Feed 35¢ to the payphone at the Qwik Stop.
@@ -145,7 +161,7 @@ Two legendary craft exist. Each scheduled sighting has a 1.5% chance of being on
 on): the Phoenix Lights at night, the '47 Visitor by day. That works out to roughly one a
 week of game time. The reliable way is a **lure** (see below), which gives a 60% chance the
 legend turns up within the next game hour or so. Lenny's email on day 3 explains it all. The
-first legend photo unlocks **M. Gray**, who buys only legends, at 2.5x.
+first legend photo unlocks **M. Gray**, who buys only legends and outbids everyone, but every sale to Gray draws at least 20 attention.
 
 | Legend | When / lure | How it moves | Base value |
 | --- | --- | --- | --- |
@@ -228,7 +244,7 @@ src/
     PhotoCamera.js     gear state: raise, zoom, AF, sway, breath, flash, film, tripod...
     Developer.js       offscreen render + metering + VHS shader + date stamp -> JPEG
     PhotoAnalyzer.js   subject detection, occlusion, grading  <- UFO hook lives here
-  game/                items/catalog, buyers & pricing, save-state shape, calendar
+  game/                items/catalog, buyers & pricing, career (jobs, heat, bills, field log), lures, save shape
   audio/Audio.js       fully synthesized sound (crickets, birds, shutter, modem...)
   ui/                  HUD + viewfinder, menus (album, home, UFO-NET PC, store), touch controls
 ```

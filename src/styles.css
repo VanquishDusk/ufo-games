@@ -1093,3 +1093,37 @@ body {
 .menu-list button:disabled:hover::before {
   content: none;
 }
+.buyer .brisk {
+  margin-top: 3px;
+  font-size: 17px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.brisk .risk {
+  color: #8a5a00;
+}
+.brisk .risk.hi {
+  color: #a01010;
+  font-weight: bold;
+}
+.brisk .safe {
+  color: #1a6a1a;
+}
+.brisk .jobtag {
+  background: #1b2c6e;
+  color: #fff;
+  padding: 0 5px;
+}
+.win-status .heat.h1 {
+  color: #8a5a00;
+}
+.win-status .heat.h2,
+.win-status .heat.h3 {
+  color: #a01010;
+  font-weight: bold;
+}
+.chip.heat-chip {
+  color: #ff5a4a;
+  border-color: #ff5a4a;
+}

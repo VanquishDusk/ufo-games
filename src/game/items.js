@@ -23,17 +23,19 @@ export const ITEMS = [
   { id: 'film_800', name: 'Hi-Speed 800 film', desc: '24 exposures. Grainier, but handles dusk and streetlights.', price: 12, kind: 'film', where: ['store', 'mail'] },
   { id: 'film_1600', name: 'NightOwl 1600 film', desc: '24 exposures. Pro night film. Very grainy, very fast.', price: 20, kind: 'film', where: ['mail'] },
   // Bodies
-  { id: 'cam_zoom90', name: 'Optika Zoom 90', desc: '3x zoom point-and-shoot. Faster wind, stronger flash, 1/8s slow shutter.', price: 150, kind: 'camera', camera: 'zoom90', where: ['mail'] },
-  { id: 'cam_slr', name: 'Kestrel K-1 SLR', desc: 'Real SLR. Takes telephoto lenses, near-instant wind, shutter down to 1s.', price: 480, kind: 'camera', camera: 'slr', where: ['mail'] },
+  { id: 'cam_zoom90', name: 'Optika Zoom 90', desc: '3x zoom point-and-shoot. Faster wind, stronger flash, 1/8s slow shutter.', price: 320, kind: 'camera', camera: 'zoom90', where: ['mail'] },
+  { id: 'cam_slr', name: 'Kestrel K-1 SLR', desc: 'Real SLR. Takes telephoto lenses, near-instant wind, shutter down to 1s.', price: 1100, kind: 'camera', camera: 'slr', where: ['mail'] },
   // Lenses
-  { id: 'lens_200', name: '200mm telephoto lens', desc: 'Up to 6x zoom on the K-1 SLR.', price: 340, kind: 'lens', zoom: 6, requires: 'slr', where: ['mail'] },
-  { id: 'lens_500', name: '500mm mirror lens', desc: 'Up to 12x zoom on the K-1 SLR. Every tremor shows.', price: 880, kind: 'lens', zoom: 12, requires: 'slr', where: ['mail'] },
+  { id: 'lens_200', name: '200mm telephoto lens', desc: 'Up to 6x zoom on the K-1 SLR.', price: 850, kind: 'lens', zoom: 6, requires: 'slr', where: ['mail'] },
+  { id: 'lens_500', name: '500mm mirror lens', desc: 'Up to 12x zoom on the K-1 SLR. Every tremor shows.', price: 2400, kind: 'lens', zoom: 12, requires: 'slr', where: ['mail'] },
   // Gear
   { id: 'flashlight', name: 'Maglite flashlight', desc: 'Light up the dark. Toggle with F.', price: 14, kind: 'gear', where: ['store', 'mail'] },
-  { id: 'binoculars', name: '7x50 binoculars', desc: 'Scan the sky without wasting film. Toggle with B.', price: 45, kind: 'gear', where: ['mail'] },
-  { id: 'tripod', name: 'Aluminum tripod', desc: 'Plant it with T. Zero shake, long exposures.', price: 70, kind: 'gear', where: ['mail'] },
-  { id: 'stabilizer', name: 'Steady-Grip handle', desc: 'Cuts handheld shake by 40%.', price: 95, kind: 'gear', where: ['mail'] },
-  { id: 'flash_pro', name: 'Pro flash unit', desc: 'Flash reaches 20m instead of a few feet.', price: 120, kind: 'gear', where: ['mail'] },
+  { id: 'binoculars', name: '7x50 binoculars', desc: 'Scan the sky without wasting film. Toggle with B.', price: 75, kind: 'gear', where: ['mail'] },
+  { id: 'tripod', name: 'Aluminum tripod', desc: 'Plant it with T. Zero shake, long exposures.', price: 140, kind: 'gear', where: ['mail'] },
+  { id: 'stabilizer', name: 'Steady-Grip handle', desc: 'Cuts handheld shake by 40%.', price: 240, kind: 'gear', where: ['mail'] },
+  { id: 'flash_pro', name: 'Pro flash unit', desc: 'Flash reaches 20m instead of a few feet.', price: 280, kind: 'gear', where: ['mail'] },
+  { id: 'scanner', name: 'Police scanner', desc: 'Crackles when someone calls in a sighting, and says roughly where.', price: 450, kind: 'gear', where: ['mail'] },
+  { id: 'darkroom', name: 'Home darkroom kit', desc: 'Enlarger, trays, safelight. Print your own: every sale pays 20% more.', price: 1800, kind: 'gear', where: ['mail'] },
 ];
 
 // Lures (consumable, one use each) come from the lure table.

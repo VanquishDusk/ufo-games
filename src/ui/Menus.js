@@ -1,6 +1,8 @@
 // Full-screen menus: title, pause/settings, photo album, home, the UFO-NET
 // computer (inbox, selling, mail order, stats) and the Qwik Stop counter.
-import { BUYERS, appraise } from '../game/economy.js';
+import { BUYERS, appraise, marketNotes } from '../game/economy.js';
+import { UFO_TYPES } from '../ufo/UFOManager.js';
+import { openJobs, heatLabel, GRADE_RANK } from '../game/career.js';
 import { ITEMS, FILM, CAMERAS, itemById } from '../game/items.js';
 import { LURES } from '../game/lures.js';
 import { formatClock, formatDate, stampDate, stampTime } from '../game/clock.js';
@@ -15,7 +17,7 @@ const CAN_DOWNLOAD = (() => {
 })();
 const TIER_COLOR = { common: '#b8b8b0', uncommon: '#7ad87a', rare: '#6ab8ff', epic: '#c88aff', legend: '#ffd84a' };
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const money = (n) => `$${n.toFixed(2)}`;
+const money = (n) => `${n < 0 ? '-' : ''}$${Math.abs(n).toFixed(2)}`;
 const tilt = (id) => `${(((id * 37) % 9) - 4) * 0.6}deg`;
 
 const CONTROLS = [
@@ -25,7 +27,7 @@ const CONTROLS = [
   ['C', 'Crouch (steadier shots)'],
   ['RIGHT MOUSE / Q', 'Raise camera (hold / toggle)'],
   ['LEFT MOUSE', 'Take photo'],
-  ['WHEEL or + / -', 'Zoom'],
+  ['Z / X (or WHEEL, + / -)', 'Zoom in / out (camera raised)'],
   ['G', 'Flash mode: auto / on / off'],
   ['R', 'Swap film roll'],
   ['F', 'Flashlight'],
@@ -410,6 +412,8 @@ export class Menus {
     const nav = [
       ['inbox', `INBOX${unread ? ` (${unread})` : ''}`],
       ['sell', 'SELL PHOTOS'],
+      ['jobs', `JOBS${openJobs(S).length ? ` (${openJobs(S).length})` : ''}`],
+      ['log', 'FIELD LOG'],
       ['shop', 'MAIL ORDER'],
       ['stats', 'MY STATS'],
     ]
@@ -419,12 +423,14 @@ export class Menus {
     if (tab === 'inbox') main = this._pcInbox();
     else if (tab === 'sell') main = this._pcSell();
     else if (tab === 'shop') main = this._pcShop();
+    else if (tab === 'jobs') main = this._pcJobs();
+    else if (tab === 'log') main = this._pcLog();
     else main = this._pcStats();
     return `<div class="desktop"><div class="win">
       <div class="win-title"><span>UFO-NET 2.1 &mdash; Connected at 14,400 bps</span><button data-a="logoff" title="Log off">×</button></div>
       <div class="win-body"><div class="win-nav">${nav}<span style="flex:1"></span><button data-a="logoff">LOG OFF</button></div>
       <div class="win-main">${main}</div></div>
-      <div class="win-status"><span>Balance: ${money(S.money)}</span><span>${formatDate(S.day)} ${formatClock(S.hour)}</span></div>
+      <div class="win-status"><span>Balance: ${money(S.money)}${S.checks?.length ? ` (+${money(S.checks.reduce((a, c) => a + c.amount, 0))} in checks)` : ''}</span><span class="heat h${Math.min(3, Math.floor((S.heat || 0) / 25))}">Attention: ${heatLabel(S.heat || 0)}</span><span>${formatDate(S.day)} ${formatClock(S.hour)}</span></div>
     </div></div>`;
   }
 
@@ -458,14 +464,56 @@ export class Menus {
       if (!unlocked) return `<div class="buyer"><div class="bname">${esc(b.name)}</div><div class="bblurb">${esc(b.lockedText || b.blurb)}</div></div>`;
       const res = appraise(p, b.id, S);
       const right = res.ok ? `<span class="offer">OFFER ${money(res.offer)}</span><button class="w95" data-a="sell" data-v="${b.id}">SELL</button>` : `<span class="decline">${esc(res.reason)}</span>`;
-      return `<div class="buyer"><div class="bname">${esc(b.name)}</div><div class="bblurb">${esc(b.blurb)}</div><div class="bres">${right}</div></div>`;
+      const risk = [];
+      if (res.ok && res.job) risk.push(`<span class="jobtag">JOB +${money(res.job.reward)}</span>`);
+      if (res.ok && res.check) risk.push(`<span class="risk">Paid by check tomorrow &middot; ${Math.round(res.bounce * 100)}% bounce</span>`);
+      if (res.ok && res.heat) risk.push(`<span class="risk ${res.heat >= 20 ? 'hi' : ''}">Attention +${res.heat}</span>`);
+      if (res.ok && !res.heat && !res.check) risk.push('<span class="safe">Safe</span>');
+      return `<div class="buyer"><div class="bname">${esc(b.name)}</div><div class="bblurb">${esc(b.blurb)}</div><div class="bres">${right}</div>${risk.length ? `<div class="brisk">${risk.join(' ')}</div>` : ''}</div>`;
     }).join('');
+    const market = marketNotes(p, S);
     const r = p.report;
     return `<div class="sell-layout"><div class="sell-list">${grid}</div>
       <div class="sell-detail"><img src="${p.url}" alt="">
         <div>No.${String(p.id).padStart(3, '0')} &middot; Grade <b>${r.grade}</b> &middot; ${stampDate(p.day)} ${stampTime(p.hour)}</div>
         <div style="color:#555">${r.subjects.map((s) => esc(s.label)).join(', ') || 'Nothing identifiable'}${r.notes.length ? ' &middot; ' + r.notes.map(esc).join(', ') : ''}</div>
+        ${market.map((m) => `<div class="decline" style="font-size:17px">${esc(m)}</div>`).join('')}
+        ${(S.heat || 0) >= 45 ? `<div class="decline" style="font-size:17px">You're getting a lot of attention. Unsold sighting photos could be seized. Vos and Lenny are quiet buyers.</div>` : ''}
         ${buyers}</div></div>`;
+  }
+
+  _pcJobs() {
+    const S = this.game.state;
+    const NAMES = { probe: 'THE WEEKLY PROBE', vos: 'DR. INGRID VOS', kchv: 'KCHV CHANNEL 7' };
+    const jobs = openJobs(S);
+    const rows = jobs
+      .map((j) => {
+        const left = j.due - S.day;
+        return `<div class="cat-item"><div><div><b>${esc(NAMES[j.buyer])}</b> wants: ${esc(j.label)} <span style="color:#555">(${j.tier}, grade ${j.minGrade}+)</span></div><div class="d">${esc(j.text)}</div></div>
+          <div style="text-align:right;white-space:nowrap"><div class="offer">+${money(j.reward)}</div><div style="font-size:17px;color:${left <= 1 ? '#8a1a1a' : '#555'}">${left <= 0 ? 'DUE TODAY' : `${left} day${left === 1 ? '' : 's'} left`}</div></div></div>`;
+      })
+      .join('');
+    return `<div style="font-size:26px">JOB BOARD</div>
+      <p style="margin:2px 0 8px;color:#555">Sell a matching photo to that buyer before the deadline and the bonus is added to their offer. A new request comes in most mornings.</p>
+      ${rows || '<p>No open requests right now. Check back tomorrow morning.</p>'}
+      <div style="margin-top:10px;color:#555">Jobs completed: ${S.stats.jobs || 0}</div>`;
+  }
+
+  _pcLog() {
+    const S = this.game.state;
+    const log = S.log || {};
+    const TIERS = ['common', 'uncommon', 'rare', 'epic', 'legend'];
+    const types = Object.entries(UFO_TYPES).sort((a, b) => TIERS.indexOf(a[1].tier) - TIERS.indexOf(b[1].tier));
+    const done = types.filter(([k]) => log[k]).length;
+    const rows = types
+      .map(([k, t]) => {
+        const e = log[k];
+        return `<div class="cat-item"><span>${e ? esc(t.label) : '? ? ? ? ?'} <span style="color:#777;font-size:17px">${t.tier.toUpperCase()}</span></span>
+          <span>${e ? `best <b>${e.best}</b> &middot; ${e.count} photo${e.count === 1 ? '' : 's'} &middot; first ${stampDate(e.first)}` : '<span style="color:#999">not documented</span>'}</span></div>`;
+      })
+      .join('');
+    return `<div style="font-size:26px">FIELD LOG <span style="font-size:20px;color:#555">${done} / ${types.length} documented</span></div>
+      <p style="margin:2px 0 8px;color:#555">The first clear photo of each kind earns a bounty from Lenny's board: $15 common, $40 uncommon, $100 rare, $250 epic, $500 legend.</p>${rows}`;
   }
 
   _pcShop() {

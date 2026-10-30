@@ -1101,6 +1101,27 @@ export class UFOManager {
     S.ufo.n += 1;
     this.current.sightingId = `${type}-d${S.day}-${S.ufo.n}`;
     this.cueTimer = rng.float(2, 5);
+    this.scanTimer = S.gear?.scanner ? rng.float(0.8, 1.6) : 0;
+  }
+
+  // Police scanner: a call-in with a rough bearing from where you stand.
+  _scan() {
+    const c = this.current;
+    const p = this.player.pos;
+    const dx = c.pos.x - p.x;
+    const dz = c.pos.z - p.z;
+    const yaw = this.player.yaw;
+    const ahead = -dx * Math.sin(yaw) - dz * Math.cos(yaw);
+    const right = dx * Math.cos(yaw) - dz * Math.sin(yaw);
+    const ang = THREE.MathUtils.radToDeg(Math.atan2(right, ahead));
+    const side = ang > 0 ? 'right' : 'left';
+    const a = Math.abs(ang);
+    const dir = a < 30 ? 'straight ahead of you' : a < 70 ? `ahead, off to your ${side}` : a < 115 ? `off to your ${side}` : a < 150 ? `behind you, to the ${side}` : 'right behind you';
+    const d = Math.hypot(dx, dz);
+    const far = d < 120 ? 'close' : d < 300 ? 'a few blocks out' : 'way out past town';
+    const what = { dots: 'moving lights', orbs: 'orange lights', star: 'a star that moves', phoenix: 'a big formation of lights', cloudship: 'a strange cloud', beam: 'a light shining down' }[c.type] || 'an object in the sky';
+    bus.emit('sfx', 'beep');
+    bus.emit('toast', `SCANNER: "...caller reporting ${what}..." From the address, that's ${dir}, ${far}.`);
   }
 
   _cue() {
@@ -1342,6 +1363,10 @@ export class UFOManager {
     if (this.current) {
       const c = this.current;
       c.update(dt, this);
+      if (this.scanTimer > 0) {
+        this.scanTimer -= dt;
+        if (this.scanTimer <= 0) this._scan();
+      }
       if (this.cueTimer > 0) {
         this.cueTimer -= dt;
         if (this.cueTimer <= 0) this._cue();

@@ -19,8 +19,8 @@ export const BINDINGS = {
   reload: ['KeyR'],
   album: ['Tab', 'KeyP'],
   pause: ['Escape'],
-  zoomIn: ['Equal', 'NumpadAdd'],
-  zoomOut: ['Minus', 'NumpadSubtract'],
+  zoomIn: ['KeyZ', 'Equal', 'NumpadAdd'],
+  zoomOut: ['KeyX', 'Minus', 'NumpadSubtract'],
   help: ['KeyH'],
   lure: ['KeyL'],
 };

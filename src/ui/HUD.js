@@ -3,6 +3,7 @@
 import { bus } from '../core/events.js';
 import { formatClock, formatDate, stampDate, stampTime } from '../game/clock.js';
 import { FILM } from '../game/items.js';
+import { heatLabel } from '../game/career.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -89,7 +90,7 @@ export class HUD {
     const pc = g.photoCam;
     this._set(this.timeEl, 'time', formatClock(S.hour));
     this._set(this.dateEl, 'date', formatDate(S.day));
-    this._set(this.moneyEl, 'money', `$${S.money.toFixed(2)}`);
+    this._set(this.moneyEl, 'money', `${S.money < 0 ? '-' : ''}$${Math.abs(S.money).toFixed(2)}`);
     const spare = Object.values(S.rolls).reduce((a, b) => a + b, 0);
     const film = FILM[S.film.type];
     const filmTxt = `FILM <span class="${S.film.remaining <= 3 ? 'warn' : ''}">${S.film.remaining}</span> &middot; ${film.short}${spare ? ` &middot; +${spare} ROLL${spare > 1 ? 'S' : ''}` : ''}`;
@@ -100,6 +101,7 @@ export class HUD {
     if (S.gear.tripod) chips.push(`<span class="chip ${pc.tripod ? '' : 'off'}">T TRIPOD</span>`);
     chips.push(`<span class="chip">G FLASH ${S.flashMode.toUpperCase()}</span>`);
     const lures = Object.values(S.lures || {}).reduce((a, n) => a + (n || 0), 0);
+    if ((S.heat || 0) >= 20) chips.push(`<span class="chip heat-chip">${heatLabel(S.heat)}</span>`);
     if (lures || S.lure) chips.push(`<span class="chip ${S.lure ? '' : 'off'}">L LURE${S.lure ? ' ACTIVE' : ` x${lures}`}</span>`);
     this._set(this.gearEl, 'gear', chips.join(''));
 

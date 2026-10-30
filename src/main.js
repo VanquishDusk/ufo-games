@@ -21,6 +21,7 @@ import { newGameState, loadState, saveState, clearState, loadSettings, saveSetti
 import { appraise, completeSale } from './game/economy.js';
 import { itemById, FILM } from './game/items.js';
 import { LURES } from './game/lures.js';
+import { refillJobs, logPhoto, morningTick, heatLabel } from './game/career.js';
 import { formatClock, GAME_MINUTES_PER_SECOND } from './game/clock.js';
 
 const RES = { crunchy: 270, retro: 360, sharp: 540 };
@@ -160,6 +161,7 @@ class Game {
       this.world.setPackage(false);
     }
     const S = this.state;
+    if (!S.jobs?.length) refillJobs(S);
     const sp = this.world.spawn;
     if (!fresh && S.pos) this.player.place(new THREE.Vector3(S.pos.x, 0, S.pos.z), S.pos.yaw);
     else this.player.place(sp.pos, sp.yaw);
@@ -225,6 +227,11 @@ class Game {
     const photo = { ...record, url, _blob: blob || dataURL };
     this.photos.push(photo);
     this.photoStore.put({ id: record.id, blob: blob || dataURL, meta: record });
+    for (const f of logPhoto(record, this.state)) {
+      this.state.money += f.bounty;
+      this.state.stats.earned += f.bounty;
+      setTimeout(() => this.hud.toast(`FIELD LOG: first ${f.label}! Lenny's board pays a $${f.bounty} bounty.`, 5500), 2500);
+    }
     const legend = record.report.subjects.find((s) => s.legend);
     if (legend && !this.state.flags.legendShot) {
       this.state.flags.legendShot = true;
@@ -254,10 +261,15 @@ class Game {
       this.audio.sfx('deny');
       return;
     }
-    completeSale(p, buyerId, res.offer, S);
+    const before = heatLabel(S.heat || 0);
+    completeSale(p, buyerId, res, S);
     this._persistPhoto(p);
     this.audio.sfx('cash');
-    this.hud.toast(`${res.line}  +$${res.offer}`);
+    if (res.check) this.hud.toast(`${res.line} ($${res.offer} check clears tomorrow morning... if it clears.)`, 5000);
+    else this.hud.toast(`${res.line}  +$${res.offer}`);
+    if (res.job) setTimeout(() => this.hud.toast(`JOB DONE: ${res.job.label} for ${res.job.buyer === 'probe' ? 'the Probe' : res.job.buyer === 'vos' ? 'Dr. Vos' : 'KCHV'}. Includes a $${res.job.reward} bonus.`, 5000), 1200);
+    const after = heatLabel(S.heat || 0);
+    if (after !== before) setTimeout(() => this.hud.toast(`ATTENTION: ${after}. Big sales get noticed.`, 5000), 2400);
     if (S.stats.sold === 1) {
       S.inbox.push({ id: 'firstsale', day: S.day, from: 'LENNY <lenny@greyzone.bbs>', subject: 'u made the board', body: "ur pic is up on the grey zone. 3 ppl downloaded it already which is a record.\n\nreal talk tho, the real money is a real sighting. the Probe pays HUNDREDS for a saucer pic, and Vos pays even more if its sharp.\n\nnight film. tripod. patience.\n- L", read: false });
     }
@@ -331,6 +343,13 @@ class Game {
       S.day += 1;
     }
     this.checkDeliveries();
+    // 8 AM: checks clear, bills come due, jobs arrive, trouble knocks.
+    while (S.tickDay < S.day && (S.tickDay < S.day - 1 || S.hour >= 8)) {
+      S.tickDay += 1;
+      const lines = morningTick(S, this);
+      lines.forEach((l, i) => setTimeout(() => this.hud.toast(l, 5500), 600 + i * 1800));
+      if (lines.length) this.audio.sfx('bell');
+    }
   }
 
   sleepUntil(target) {
@@ -448,7 +467,7 @@ class Game {
     }
     if (input.keysPressed.has('F8')) {
       for (const id of Object.keys(LURES)) this.applyItem(id);
-      this.hud.toast('[debug] +1 mirror, +1 flares.');
+      this.hud.toast('[debug] +1 of every lure.');
     }
     for (const [code, type] of [['Digit1', 'saucer'], ['Digit2', 'cigar'], ['Digit3', 'triangle'], ['Digit4', 'sphere'], ['Digit5', 'vee'], ['Digit6', 'dots'], ['Digit7', 'k1947'], ['Digit8', 'phoenix']]) {
       if (input.keysPressed.has(code)) {
@@ -554,7 +573,7 @@ class Game {
     }
     const pc = this.photoCam;
     let h;
-    if (pc.raised) h = `<kbd>LMB</kbd> SNAP &nbsp; <kbd>WHEEL</kbd> ZOOM &nbsp; <kbd>SHIFT</kbd> HOLD BREATH &nbsp; <kbd>C</kbd> CROUCH &nbsp; <kbd>G</kbd> FLASH`;
+    if (pc.raised) h = `<kbd>LMB</kbd> SNAP &nbsp; ${pc.maxZoom > 1 ? '<kbd>Z</kbd>/<kbd>X</kbd> ZOOM' : 'NO ZOOM ON THIS CAMERA'} &nbsp; <kbd>SHIFT</kbd> HOLD BREATH &nbsp; <kbd>C</kbd> CROUCH &nbsp; <kbd>G</kbd> FLASH`;
     else h = `<kbd>RMB</kbd>/<kbd>Q</kbd> RAISE CAMERA &nbsp; <kbd>E</kbd> INTERACT &nbsp; <kbd>TAB</kbd> ALBUM &nbsp; <kbd>R</kbd> FILM &nbsp; <kbd>H</kbd> HIDE HINTS`;
     this.hud.setHints(this.debug ? `${h}<br>${this._debugLine()}` : h);
   }
