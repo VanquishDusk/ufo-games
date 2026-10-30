@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Skywatch '97</title>
+    <meta name="description" content="Photograph the unexplained in a 1997 suburb. A VHS-flavored UFO photography game." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game"></canvas>
+      <div id="hud" class="hidden">
+        <div id="clock" class="osd"><div class="time"></div><div class="date"></div></div>
+        <div id="status" class="osd">
+          <div class="money"></div>
+          <div class="film"></div>
+          <div class="gear"></div>
+        </div>
+        <div id="crosshair"></div>
+        <div id="prompt" class="osd"></div>
+        <div id="toasts"></div>
+        <div id="hints" class="osd"></div>
+        <div id="clickResume" class="osd">CLICK TO RESUME</div>
+      </div>
+      <div id="viewfinder">
+        <div class="frame osd">
+          <div class="corner tl"></div>
+          <div class="corner tr"></div>
+          <div class="corner bl"></div>
+          <div class="corner br"></div>
+          <div class="af"></div>
+          <div class="vf-tl"></div>
+          <div class="vf-tr"></div>
+          <div class="vf-bl"></div>
+          <div class="vf-br"></div>
+          <div class="vf-bc"></div>
+          <div class="vf-c"></div>
+        </div>
+      </div>
+      <div id="binoculars">
+        <svg viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <mask id="bmask">
+              <rect width="160" height="90" fill="white" />
+              <circle cx="62" cy="45" r="38" fill="black" />
+              <circle cx="98" cy="45" r="38" fill="black" />
+            </mask>
+          </defs>
+          <rect width="160" height="90" fill="#000" mask="url(#bmask)" />
+        </svg>
+      </div>
+      <div id="flash"></div>
+      <div id="preview"><img alt="" /><div class="cap"><span class="txt"></span><span class="grade"></span></div></div>
+      <div id="touch"></div>
+      <div id="overlay"></div>
+      <div id="fade"></div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

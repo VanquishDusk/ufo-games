@@ -1,0 +1,18 @@
+{
+  "name": "ufo-games",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A 90s suburban UFO photography game (working title: SKYWATCH '97).",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "vite": "6.4.5"
+  }
+}
