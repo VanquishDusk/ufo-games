@@ -81,9 +81,8 @@ export class Menus {
       this.render();
       return;
     }
-    if (this.screen === 'pc' && (this.data.mail || this.data.sel) && this.data.tab !== 'shop') {
+    if (this.screen === 'pc' && this.data.mail) {
       this.data.mail = null;
-      this.data.sel = null;
       this.render();
       return;
     }

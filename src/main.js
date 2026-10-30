@@ -532,6 +532,14 @@ class Game {
   }
 }
 
-const game = new Game();
-window.__game = game;
-game.init();
+// Let the "loading" card paint before the town is built.
+requestAnimationFrame(() =>
+  setTimeout(async () => {
+    const game = new Game();
+    window.__game = game;
+    await game.init();
+    const fade = document.getElementById('fade');
+    fade.classList.remove('on');
+    setTimeout(() => (fade.textContent = ''), 700);
+  }, 30),
+);

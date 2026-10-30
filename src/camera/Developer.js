@@ -201,7 +201,7 @@ export class Developer {
     const target = 0.16;
     const needed = target / metered; // brightness multiplier we'd like
     const isoK = opts.iso / 400;
-    const baseShutter = 1 / 60;
+    const baseShutter = 1 / 250; // shutter that gives `target` at ISO 400 in the reference light
     const wantShutter = (baseShutter * needed) / isoK;
     const shutter = Math.min(Math.max(wantShutter, 1 / 1000), opts.maxShutter);
     const achieved = (shutter / baseShutter) * isoK;

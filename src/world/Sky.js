@@ -292,7 +292,7 @@ export class Sky {
 
   // Rough scene brightness for the camera's light meter (0..1, linear).
   get lightLevel() {
-    // Calibrated against the photo meter: ~0.013 at night, ~0.18 at noon.
-    return clamp(this.pal.hemi * 0.03 + this.pal.sunI * 0.06 * clamp(this.sunDir.y * 3, 0, 1), 0.003, 0.3);
+    // Calibrated against the photo meter: ~0.01 at night, ~0.18 at noon.
+    return clamp(this.pal.hemi * 0.024 + this.pal.sunI * 0.06 * clamp(this.sunDir.y * 3, 0, 1), 0.003, 0.3);
   }
 }

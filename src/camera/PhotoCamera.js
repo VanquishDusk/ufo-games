@@ -252,10 +252,10 @@ export class PhotoCamera {
     // Rough shutter estimate for the viewfinder readout.
     const light = this.world.sky.lightLevel * (this.flashlightOn ? 1.4 : 1);
     const needed = 0.16 / Math.max(light, 0.002);
-    const want = ((1 / 60) * needed) / (this.film.iso / 400);
+    const want = ((1 / 250) * needed) / (this.film.iso / 400);
     this.lastShutterEstimate = clamp(want, 1 / 1000, this.maxShutter);
     // Expected exposure error in stops (negative = too dark).
-    this.evEstimate = Math.log2(((this.lastShutterEstimate / (1 / 60)) * (this.film.iso / 400)) / needed);
+    this.evEstimate = Math.log2(((this.lastShutterEstimate * 250) * (this.film.iso / 400)) / needed);
     this.flashWouldFire = this._flashWouldFire();
 
     // Shoot.
