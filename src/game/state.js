@@ -20,6 +20,8 @@ export function newGameState() {
     gear: { flashlight: false, binoculars: false, tripod: false, stabilizer: false, flash_pro: false },
     film: { type: 'film_200', remaining: 24 },
     rolls: { film_200: 1, film_800: 0, film_1600: 0 },
+    lures: {},
+    lure: null,
     flashMode: 'auto',
     deliveries: [], // { itemId, arrive: day }
     porch: [], // itemIds waiting on the porch
@@ -63,7 +65,7 @@ export function loadState() {
   if (!s || s.version !== 1) return null;
   const base = newGameState();
   // Shallow-merge so saves from older builds pick up new fields.
-  return { ...base, ...s, gear: { ...base.gear, ...s.gear }, rolls: { ...base.rolls, ...s.rolls }, rep: { ...base.rep, ...s.rep }, stats: { ...base.stats, ...s.stats } };
+  return { ...base, ...s, gear: { ...base.gear, ...s.gear }, rolls: { ...base.rolls, ...s.rolls }, lures: { ...base.lures, ...s.lures }, rep: { ...base.rep, ...s.rep }, stats: { ...base.stats, ...s.stats } };
 }
 
 export function saveState(state) {

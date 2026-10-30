@@ -25,6 +25,7 @@ export class Touch {
       <button class="tb" data-hold="zoomOut" style="right:18px;bottom:170px">ZM-</button>
       <button class="tb" data-hold="sprint" style="left:28px;bottom:168px">RUN</button>
       <button class="tb" data-act="flashlight" style="left:100px;bottom:168px">TORCH</button>
+      <button class="tb" data-act="lure" style="left:172px;bottom:168px">LURE</button>
       <button class="tb" data-act="album" style="right:18px;top:104px">ALBUM</button>
       <button class="tb" data-act="pause" style="right:90px;top:104px">MENU</button>
     `;

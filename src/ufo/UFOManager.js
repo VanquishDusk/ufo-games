@@ -11,7 +11,7 @@
 import * as THREE from 'three';
 import { bus } from '../core/events.js';
 import { RNG, clamp, noise1 } from '../core/rng.js';
-import { buildSaucer, buildCigar, buildTriangle, buildSphere, buildV, buildDots } from './models.js';
+import { buildSaucer, buildCigar, buildTriangle, buildSphere, buildV, buildDots, build1947, buildPhoenix, PHOENIX_LIGHTS } from './models.js';
 import { ZONES, LANDMARKS } from '../world/layout.js';
 
 export const UFO_TYPES = {
@@ -21,7 +21,14 @@ export const UFO_TYPES = {
   sphere: { label: 'Metallic sphere', value: 320, radius: 2.8 },
   vee: { label: 'V-shaped craft', value: 230, radius: 26 },
   dots: { label: 'Circling lights', value: 70, radius: 30 },
+  // Legends: almost never seen without a lure.
+  k1947: { label: "The '47 Visitor", value: 1200, radius: 12, legend: true },
+  phoenix: { label: 'The Phoenix Lights', value: 1500, radius: 150, legend: true },
 };
+
+// Chance that a scheduled sighting turns out to be a legend instead.
+const LEGEND_CHANCE = 0.015;
+const LURE_SUCCESS = 0.6;
 
 // Per-type side effects. audio: which sound it makes; hush: wildlife goes
 // quiet nearby; disturb: lamps flicker when it's low overhead.
@@ -32,6 +39,8 @@ const FX = {
   sphere: { audio: null, hush: true, disturb: true },
   vee: { audio: null, hush: true, disturb: false },
   dots: { audio: null, hush: false, disturb: false },
+  k1947: { audio: null, hush: true, disturb: false },
+  phoenix: { audio: null, hush: true, disturb: false },
 };
 
 // Relative odds by time of day. Dots are the everyday sighting, the sphere
@@ -502,6 +511,121 @@ class Dots extends Craft {
   }
 }
 
+// LEGEND (day): streaks in, flies fast wide circles while fluttering and
+// dipping "like a saucer skipped across water", flashes in the sun, then
+// leaves in a straight line at absurd speed.
+class K1947 extends Craft {
+  constructor(mgr, model, rng, { at }) {
+    super(mgr, 'k1947', model, rng);
+    const p = at || mgr.player.pos;
+    const C = V(p.x + rng.float(-40, 40), rng.float(130, 185), p.z + rng.float(-40, 40));
+    const R = rng.float(110, 165);
+    const speed = rng.float(48, 62);
+    const w = (speed / R) * rng.sign();
+    this.turn = Math.sign(w);
+    const a0 = rng.float(0, Math.PI * 2);
+    const onCircle = (a) => V(C.x + Math.cos(a) * R, C.y, C.z + Math.sin(a) * R);
+    const entry = onCircle(a0);
+    const inDir = V(-Math.sin(a0) * Math.sign(w), 0, Math.cos(a0) * Math.sign(w)); // tangent
+    const start = entry.clone().addScaledVector(inDir, -1100).add(V(0, 260, 0));
+    this.pos.copy(start);
+    this.seg(4, (k) => this.pos.lerpVectors(start, entry, E.outCubic(k)), 'arrive');
+    const loops = rng.float(2, 3.2);
+    const dur = (loops * Math.PI * 2) / Math.abs(w);
+    let endA = a0;
+    this.seg(dur, (k, t) => {
+      const a = a0 + w * dur * k;
+      endA = a;
+      this.pos.copy(onCircle(a));
+      this.pos.y += Math.sin(t * 2.3) * 4 + Math.sin(t * 5.1) * 1.5; // skipping
+    }, 'circle');
+    this.seg(3.5, (k) => {
+      if (k === 0 || !this.exitFrom) {
+        this.exitFrom = this.pos.clone();
+        this.exitDir = V(-Math.sin(endA) * Math.sign(w), 0.12, Math.cos(endA) * Math.sign(w)).normalize();
+      }
+      this.pos.copy(this.exitFrom).addScaledVector(this.exitDir, speed * k * 3.5 + 2200 * k * k * k);
+    }, 'depart');
+  }
+
+  animate() {
+    const v = this.vel;
+    if (v.lengthSq() > 1) this.yaw = Math.atan2(v.z, -v.x);
+    const g = this.group.rotation;
+    g.y = this.yaw || 0;
+    const banking = this.cur === 'circle' ? 0.55 : 0.1;
+    g.x = -banking * this.turn + Math.sin(this.t * 9) * 0.12; // bank into the turn + flutter
+    g.z = Math.sin(this.t * 7.3) * 0.08;
+    const m = this.model.materials[0];
+    m.opacity = this.alpha;
+  }
+
+  lightLevel() {
+    // Flashes like a mirror as it rocks in the sun.
+    const sky = this.mgr.world.sky;
+    if (sky.sunDir.y < 0) return 0;
+    return Math.pow(Math.max(0, Math.sin(this.t * 3.1)), 18) * 2.4 * sky.daylight;
+  }
+}
+
+// LEGEND (night): a gigantic silent V drifts almost straight overhead, then
+// moves off toward the horizon where its lights settle into a hanging row
+// and go out one by one.
+class Phoenix extends Craft {
+  constructor(mgr, model, rng, { at }) {
+    super(mgr, 'phoenix', model, rng);
+    const p = at || mgr.player.pos;
+    const h = rng.float(0, Math.PI * 2);
+    const dir = V(Math.cos(h), 0, Math.sin(h));
+    const side = V(-dir.z, 0, dir.x);
+    const over = V(p.x, rng.float(220, 270), p.z).addScaledVector(side, rng.float(-50, 50));
+    const start = over.clone().addScaledVector(dir, -560);
+    const passEnd = over.clone().addScaledVector(dir, 240);
+    const hang = V(p.x, rng.float(120, 160), p.z).addScaledVector(dir, 700).addScaledVector(side, rng.float(-120, 120));
+    const yawPass = Math.atan2(-dir.x, -dir.z);
+    const toViewer = V(p.x - hang.x, 0, p.z - hang.z).normalize();
+    const yawHang = Math.atan2(-toViewer.x, -toViewer.z);
+    this.yaw = yawPass;
+    this.morph = 0;
+    this.hullAlpha = 1;
+    this.lit = new Array(PHOENIX_LIGHTS).fill(1);
+    this.pos.copy(start);
+    this.seg(800 / 9, (k) => this.pos.lerpVectors(start, passEnd, E.outSine(k)), 'pass');
+    this.seg(16, (k) => {
+      const e = E.inOutSine(k);
+      this.pos.lerpVectors(passEnd, hang, e);
+      this.morph = e;
+      this.hullAlpha = 1 - Math.min(1, k * 2);
+      let d = yawHang - yawPass;
+      d = Math.atan2(Math.sin(d), Math.cos(d));
+      this.yaw = yawPass + d * e;
+    }, 'settle');
+    this.hover(hang, rng.float(40, 60), 'hang', 0.3, 0.6);
+    this.seg(10, (k) => {
+      // Out one at a time, left to right.
+      model.order.forEach((vi, slot) => (this.lit[vi] = clamp(1 - (k * 8 - slot), 0, 1)));
+    }, 'fade');
+  }
+
+  animate() {
+    const m = this.model;
+    this.group.rotation.set(0, this.yaw, 0);
+    m.hull.visible = this.hullAlpha > 0.02;
+    m.materials[0].opacity = this.hullAlpha;
+    for (let i = 0; i < PHOENIX_LIGHTS; i++) {
+      const p = m.lights[i].obj.position.lerpVectors(m.vPos[i], m.rowPos[i], this.morph);
+      m.lights[i + PHOENIX_LIGHTS].obj.position.set(p.x, p.y - 1, p.z);
+    }
+  }
+
+  lightLevel(L, i) {
+    const n = this.mgr.world.sky.night;
+    const k = i % PHOENIX_LIGHTS;
+    const flick = 0.92 + 0.08 * Math.sin(this.t * 5 + k * 1.3);
+    return this.lit[k] * flick * (L.role === 'halo' ? 0.2 : 1.5) * (0.3 + n * 0.8);
+  }
+}
+
 export class UFOManager {
   constructor(game) {
     this.game = game;
@@ -510,7 +634,7 @@ export class UFOManager {
     this.camera = game.camera;
     this.current = null;
     this.lastAbs = null;
-    this.models = { saucer: buildSaucer(), cigar: buildCigar(), triangle: buildTriangle(), sphere: buildSphere(), vee: buildV(), dots: buildDots(5) };
+    this.models = { saucer: buildSaucer(), cigar: buildCigar(), triangle: buildTriangle(), sphere: buildSphere(), vee: buildV(), dots: buildDots(5), k1947: build1947(), phoenix: buildPhoenix() };
     // Live reflections for the chrome sphere.
     this.cubeRT = new THREE.WebGLCubeRenderTarget(96);
     this.cubeCam = new THREE.CubeCamera(1, 1500, this.cubeRT);
@@ -522,6 +646,8 @@ export class UFOManager {
     const g = this.world.glows;
     this.glowPool = [];
     for (let i = 0; i < 16; i++) this.glowPool.push(g.add(V(0, -500, 0), '#ffffff', 1));
+    // Three flares for the flare lure.
+    this.flareGlows = [0, 1, 2].map(() => g.add(V(0, -500, 0), '#ff3a1a', 1.6));
 
     // Register each type as a photo subject. They only count while flying.
     for (const [type, info] of Object.entries(UFO_TYPES)) {
@@ -539,6 +665,7 @@ export class UFOManager {
         get selfLuminous() {
           return mgr.world.sky.night > 0.5;
         },
+        legend: !!info.legend,
         getPos: (cam, out) => out.copy(mgr.current.pos),
         getVel: () => mgr.current.vel,
         isActive: () => mgr.current?.type === type && mgr.current.alpha > 0.35,
@@ -553,6 +680,7 @@ export class UFOManager {
   _pickType(hour, rng) {
     const night = hour >= 20.6 || hour < 5;
     const twilight = !night && (hour >= 18 || hour < 7);
+    if (this.state.day >= 1 && rng.chance(LEGEND_CHANCE)) return night ? 'phoenix' : 'k1947';
     const odds = ODDS[night ? 'night' : twilight ? 'twilight' : 'day'];
     const total = Object.values(odds).reduce((a, b) => a + b, 0);
     let r = rng.float(0, total);
@@ -585,15 +713,15 @@ export class UFOManager {
     S.ufo = { next: S.day === 0 && S.hour < 20 ? 20.6 + Math.random() * 1.2 : abs + 1 + Math.random() * 2, n: 0 };
   }
 
-  spawn(type, near = false) {
+  spawn(type, near = false, at = null) {
     this._ensureState();
     const S = this.state;
     if (this.current) this.current.dispose();
     const rng = new RNG(Math.floor(Math.random() * 1e9));
     const night = this.world.sky.night > 0.5;
     const model = this.models[type];
-    const C = { saucer: Saucer, cigar: Cigar, triangle: Triangle, sphere: Sphere, vee: Vee, dots: Dots }[type];
-    this.current = new C(this, model, rng, { night, near });
+    const C = { saucer: Saucer, cigar: Cigar, triangle: Triangle, sphere: Sphere, vee: Vee, dots: Dots, k1947: K1947, phoenix: Phoenix }[type];
+    this.current = new C(this, model, rng, { night, near, at });
     S.ufo.n += 1;
     this.current.sightingId = `${type}-d${S.day}-${S.ufo.n}`;
     this.cueTimer = rng.float(2, 5);
@@ -610,12 +738,105 @@ export class UFOManager {
     else if (c.type === 'triangle') msg = 'A low hum, more felt than heard. The crickets have stopped.';
     else if (c.type === 'sphere') msg = night ? 'The crickets stop. All of them, at once.' : 'Something is hanging perfectly still in the sky.';
     else if (c.type === 'vee') msg = 'A row of lights is moving across the sky. Not a sound.';
+    else if (c.type === 'k1947') msg = 'Something flashes in the sky, like sun off a mirror. Then again. Then again.';
+    else if (c.type === 'phoenix') msg = 'The whole block has gone silent. Up and down the street, people are stepping out onto their lawns.';
     else {
       // Dots are easy to mistake for stars; only sometimes does anyone notice.
       if (Math.random() < 0.5) return;
       msg = 'A few of the stars seem to be... moving?';
     }
     bus.emit('toast', msg);
+  }
+
+  // Lenny explains the legends (and the lures) once you've settled in.
+  _legendMail() {
+    const S = this.state;
+    if (S.day < 2 || S.flags.legendMail) return;
+    S.flags.legendMail = true;
+    S.inbox.push({
+      id: 'legends',
+      day: S.day,
+      from: 'LENNY <lenny@greyzone.bbs>',
+      subject: 'the LEGENDS (read this)',
+      body: "ok so beyond the usual stuff there are two things everybody on the board wants and NOBODY has.\n\n1) THE '47 VISITOR. heel shaped, flat, little fin hanging off the bottom. same thing a guy photographed over Phoenix in 1947. flies big fast circles, wobbles like a skipped rock, then just GONE. daytime only. the pilot who saw them in '47 said they flashed like mirrors in the sun.\n\n2) THE PHOENIX LIGHTS. you saw the news in March. a V a mile wide, dead silent, lights hanging over the mountains, then they go out one by one. night only.\n\nyou could wait your whole life for either one. OR. old timers swear the '47 ones come if you flash a mirror at the sky on a sunny day. and the phoenix ones... ppl say flares. lots of flares. (yeah i know thats what the air force said lol)\n\nskywatcher sells signal mirrors and road flares now. go somewhere OPEN, the corn, the field past Oak, the park. press L.\n\nand if you ever get one on film... dont sell it cheap.\n- L",
+      read: false,
+    });
+    bus.emit('toast', 'New mail on UFO-NET.');
+  }
+
+  _isOpen(x, z) {
+    for (const key of ['corn', 'field', 'park']) {
+      const r = ZONES[key];
+      if (x > r[0] - 4 && x < r[2] + 4 && z > r[1] - 4 && z < r[3] + 4) return true;
+    }
+    return false;
+  }
+
+  // Player pressed L.
+  useLure() {
+    const S = this.state;
+    this._ensureState();
+    if (S.lure) {
+      bus.emit('toast', S.lure.kind === 'lure_flares' ? 'The flares are still burning. Wait and watch.' : "You've already signalled. Wait and watch.");
+      return;
+    }
+    const sky = this.world.sky;
+    const has = (id) => (S.lures[id] || 0) > 0;
+    let kind = null;
+    if (sky.night > 0.5 && has('lure_flares')) kind = 'lure_flares';
+    else if (sky.sunDir.y > 0.08 && has('lure_mirror')) kind = 'lure_mirror';
+    if (!kind) {
+      if (!has('lure_flares') && !has('lure_mirror')) bus.emit('toast', "You don't have any lures. Skywatcher Supply sells them.");
+      else if (has('lure_mirror') && !has('lure_flares')) bus.emit('toast', 'A signal mirror needs the sun high enough to catch.');
+      else if (has('lure_flares') && !has('lure_mirror')) bus.emit('toast', 'Flares are for full dark. Wait for night.');
+      else bus.emit('toast', 'Mirror needs sun, flares need full dark. Not now.');
+      return;
+    }
+    const p = this.player.pos;
+    if (!this._isOpen(p.x, p.z)) {
+      bus.emit('toast', 'Find somewhere open: the corn field, the field west of Oak St, or the park.');
+      return;
+    }
+    S.lures[kind] -= 1;
+    const abs = S.day * 24 + S.hour;
+    S.lure = { kind, x: p.x, z: p.z, rollAt: abs + 0.15 + Math.random() * 0.75, until: abs + 1.5, rolled: false, success: false };
+    if (kind === 'lure_flares') {
+      bus.emit('sfx', 'flare');
+      bus.emit('toast', 'You plant three road flares in a triangle and step back. Now you wait.');
+    } else {
+      bus.emit('sfx', 'click');
+      bus.emit('toast', 'You flash the signal mirror at the sky, again and again. Now you wait.');
+    }
+  }
+
+  _updateLure(abs) {
+    const S = this.state;
+    const L = S.lure;
+    const g = this.world.glows;
+    if (!L) {
+      for (const i of this.flareGlows) g.set(i, 0);
+      return;
+    }
+    if (L.kind === 'lure_flares') {
+      // Three sputtering red flares on the ground.
+      this.flareGlows.forEach((i, k) => {
+        const a = (k / 3) * Math.PI * 2;
+        g.move(i, _v.set(L.x + Math.cos(a) * 2.5, 0.35, L.z + Math.sin(a) * 2.5));
+        g.set(i, 0.9 + Math.random() * 0.5);
+      });
+    }
+    if (!L.rolled && abs >= L.rollAt) {
+      L.rolled = true;
+      L.success = Math.random() < LURE_SUCCESS;
+      if (L.success) {
+        if (this.current) this.end();
+        this.spawn(L.kind === 'lure_flares' ? 'phoenix' : 'k1947', false, V(L.x, 0, L.z));
+      }
+    }
+    if (abs >= L.until) {
+      if (!L.success) bus.emit('toast', L.kind === 'lure_flares' ? 'The flares sputter out. Nothing came tonight.' : 'Your arm is tired. Nothing answered.');
+      S.lure = null;
+    }
   }
 
   // Called every frame while playing.
@@ -626,9 +847,12 @@ export class UFOManager {
     // Time jumped (sleep): drop whatever was up and reschedule soon.
     if (this.lastAbs !== null && abs - this.lastAbs > 0.5) {
       if (this.current) this.end();
+      S.lure = null; // you weren't out there to see it
       if (abs > S.ufo.next) this._schedule(abs, 0.4, 2.5);
     }
     this.lastAbs = abs;
+    this._legendMail();
+    this._updateLure(abs);
 
     if (this.current) {
       const c = this.current;

@@ -224,6 +224,12 @@ class Game {
     const photo = { ...record, url, _blob: blob || dataURL };
     this.photos.push(photo);
     this.photoStore.put({ id: record.id, blob: blob || dataURL, meta: record });
+    const legend = record.report.subjects.find((s) => s.legend);
+    if (legend && !this.state.flags.legendShot) {
+      this.state.flags.legendShot = true;
+      this.state.inbox.push({ id: 'gray', day: this.state.day, from: 'M. GRAY', subject: '(no subject)', body: `We have seen your photograph.\n\nWe would like to acquire it, and any others like it. You will find our offer under SELL PHOTOS. We pay considerably more than the newspapers.\n\nDo not discuss this correspondence.\n\n- M. Gray`, read: false });
+      setTimeout(() => this.hud.toast('Your computer is beeping. New mail.', 5000), 4000);
+    }
     this.hud.showPreview(url, record.report);
     if (this.state.stats.photos === 1) setTimeout(() => this.hud.toast('Saved to your album (TAB). Sell photos from the computer at home.', 6000), 1500);
     this.save();
@@ -269,6 +275,7 @@ class Game {
     } else if (it.kind === 'lens') {
       if (!S.lenses.includes(id)) S.lenses.push(id);
     } else if (it.kind === 'gear') S.gear[id] = true;
+    else if (it.kind === 'lure') S.lures[id] = (S.lures[id] || 0) + 1;
   }
 
   order(id) {
@@ -431,7 +438,12 @@ class Game {
     if (input.keysPressed.has('BracketLeft')) this.state.hour = (this.state.hour + 23) % 24;
     if (input.keysPressed.has('Backslash')) this.timeScale = this.timeScale > 1 ? 1 : 30;
     if (input.keysPressed.has('F10')) this.state.money += 500;
-    for (const [code, type] of [['Digit1', 'saucer'], ['Digit2', 'cigar'], ['Digit3', 'triangle'], ['Digit4', 'sphere'], ['Digit5', 'vee'], ['Digit6', 'dots']]) {
+    if (input.keysPressed.has('F8')) {
+      this.applyItem('lure_mirror');
+      this.applyItem('lure_flares');
+      this.hud.toast('[debug] +1 mirror, +1 flares.');
+    }
+    for (const [code, type] of [['Digit1', 'saucer'], ['Digit2', 'cigar'], ['Digit3', 'triangle'], ['Digit4', 'sphere'], ['Digit5', 'vee'], ['Digit6', 'dots'], ['Digit7', 'k1947'], ['Digit8', 'phoenix']]) {
       if (input.keysPressed.has(code)) {
         this.ufos.spawn(type, true);
         this.hud.toast(`[debug] ${type} spawned nearby.`);
@@ -469,6 +481,7 @@ class Game {
       this.advanceHours((dt * GAME_MINUTES_PER_SECOND * this.timeScale) / 60);
       this._debug(input);
       this.ufos.update(dt);
+      if (input.pressed('lure')) this.ufos.useLure();
       const mods = this.photoCam.update(dt, input);
       this.player.update(dt, input, mods);
 
@@ -536,7 +549,7 @@ class Game {
 
   _debugLine() {
     const p = this.player.pos;
-    return `[debug] ${Math.round(this.fps)} fps &middot; ${p.x.toFixed(0)}, ${p.z.toFixed(0)} &middot; [ ] hour &middot; \\ fast &middot; 1-6 spawn UFO &middot; F9 orb &middot; F10 $$$`;
+    return `[debug] ${Math.round(this.fps)} fps &middot; ${p.x.toFixed(0)}, ${p.z.toFixed(0)} &middot; [ ] hour &middot; \\ fast &middot; 1-8 spawn UFO &middot; F8 lures &middot; F9 orb &middot; F10 $$$`;
   }
 }
 

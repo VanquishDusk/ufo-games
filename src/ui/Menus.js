@@ -31,6 +31,7 @@ const CONTROLS = [
   ['T', 'Plant / pack tripod'],
   ['E', 'Interact'],
   ['TAB or P', 'Photo album'],
+  ['L', 'Use a lure (out in the open)'],
   ['H', 'Toggle hints'],
   ['ESC', 'Pause'],
 ];
@@ -337,7 +338,7 @@ export class Menus {
 
   _photoInfo(p) {
     const r = p.report;
-    const subj = r.subjects.length ? r.subjects.map((s) => `${esc(s.label)}${s.category === 'anomaly' ? ' <b style="color:var(--amber)">★</b>' : ''} <span style="opacity:.6">${Math.round(s.score * 100)}%</span>`).join('<br>') : '<span style="opacity:.6">Nothing identifiable</span>';
+    const subj = r.subjects.length ? r.subjects.map((s) => `${esc(s.label)}${s.legend ? ' <b style="color:#ffd84a">★ LEGEND</b>' : s.category === 'anomaly' ? ' <b style="color:var(--amber)">★</b>' : ''} <span style="opacity:.6">${Math.round(s.score * 100)}%</span>`).join('<br>') : '<span style="opacity:.6">Nothing identifiable</span>';
     const shutter = r.shutter >= 0.5 ? `${r.shutter.toFixed(1)}s` : `1/${Math.round(1 / r.shutter)}`;
     return `<div style="font-size:30px">No.${String(p.id).padStart(3, '0')} <span class="grade g-${r.grade}">${r.grade}</span></div>
       <div>${stampDate(p.day)} &middot; ${stampTime(p.hour)}</div>
@@ -483,6 +484,8 @@ export class Menus {
           if (it.requires && S.camera !== it.requires && !pending.includes(`cam_${it.requires}`)) status = status || 'NEEDS K-1 SLR';
         } else if (it.kind === 'film') {
           status = `HAVE ${S.rolls[it.id] || 0}`;
+        } else if (it.kind === 'lure') {
+          status = `HAVE ${S.lures[it.id] || 0}`;
         }
         if (pending.includes(it.id) && it.kind !== 'film') {
           status = 'ON ITS WAY';

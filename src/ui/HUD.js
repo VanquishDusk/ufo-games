@@ -99,6 +99,8 @@ export class HUD {
     if (S.gear.binoculars) chips.push(`<span class="chip ${pc.binoculars ? '' : 'off'}">B BINO</span>`);
     if (S.gear.tripod) chips.push(`<span class="chip ${pc.tripod ? '' : 'off'}">T TRIPOD</span>`);
     chips.push(`<span class="chip">G FLASH ${S.flashMode.toUpperCase()}</span>`);
+    const lures = (S.lures?.lure_mirror || 0) + (S.lures?.lure_flares || 0);
+    if (lures || S.lure) chips.push(`<span class="chip ${S.lure ? '' : 'off'}">L LURE${S.lure ? ' ACTIVE' : ` x${lures}`}</span>`);
     this._set(this.gearEl, 'gear', chips.join(''));
 
     const aiming = pc.raiseT > 0.5;

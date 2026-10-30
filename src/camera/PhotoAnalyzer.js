@@ -83,14 +83,22 @@ export class PhotoAnalyzer {
       // A moving subject smears across the frame during the exposure.
       let motionPx = 0;
       if (s.getVel) {
+        // Angular speed across the frame, minus however much you panned with it.
         const v = s.getVel();
-        _dir.subVectors(_p, camera.position).normalize();
-        const perp = _off.copy(v).addScaledVector(_dir, -v.dot(_dir)).length();
-        motionPx = (perp / dist) * dev.shutter * (PHOTO_H / THREE.MathUtils.degToRad(camera.fov));
+        _right.set(1, 0, 0).applyQuaternion(camera.quaternion);
+        _up.set(0, 1, 0).applyQuaternion(camera.quaternion);
+        let wx = v.dot(_right) / dist;
+        let wy = v.dot(_up) / dist;
+        if (dev.angVel) {
+          wx += dev.angVel.x;
+          wy -= dev.angVel.y;
+        }
+        motionPx = Math.hypot(wx, wy) * dev.shutter * (PHOTO_H / THREE.MathUtils.degToRad(camera.fov));
       }
       subjects.push({
         id: s.id,
         kind: s.kind || null,
+        legend: !!s.legend,
         label: s.label,
         category: s.category,
         value: s.value || 0,

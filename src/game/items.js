@@ -31,6 +31,9 @@ export const ITEMS = [
   { id: 'binoculars', name: '7x50 binoculars', desc: 'Scan the sky without wasting film. Toggle with B.', price: 45, kind: 'gear', where: ['mail'] },
   { id: 'tripod', name: 'Aluminum tripod', desc: 'Plant it with T. Zero shake, long exposures.', price: 70, kind: 'gear', where: ['mail'] },
   { id: 'stabilizer', name: 'Steady-Grip handle', desc: 'Cuts handheld shake by 40%.', price: 95, kind: 'gear', where: ['mail'] },
+  // Lures (consumable, one use each)
+  { id: 'lure_mirror', name: 'Signal mirror', desc: "Flash it at a sunny sky out in the open (L). They say the '47 Visitor answers.", price: 60, kind: 'lure', where: ['mail'] },
+  { id: 'lure_flares', name: 'Road flares (3-pack)', desc: 'Light them somewhere open after dark (L). They say the Phoenix Lights come to them.', price: 90, kind: 'lure', where: ['mail'] },
   { id: 'flash_pro', name: 'Pro flash unit', desc: 'Flash reaches 20m instead of a few feet.', price: 120, kind: 'gear', where: ['mail'] },
 ];
 

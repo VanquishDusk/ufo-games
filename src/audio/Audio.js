@@ -236,6 +236,9 @@ export class Audio {
         this._tone({ freq: 440, dur: 1.2, type: 'sine', peak: 0.04 });
         this._noiseBurst({ t0: t + 1.3, dur: 2.5, type: 'bandpass', freq: 1800, q: 0.5, peak: 0.03, attack: 0.5 });
         break;
+      case 'flare':
+        for (let i = 0; i < 3; i++) this._noiseBurst({ t0: t + i * 0.5, dur: 1.4, type: 'highpass', freq: 2500, peak: 0.12, attack: 0.05 });
+        break;
       case 'dogs':
         for (let d = 0; d < 3; d++) {
           const n = 3 + Math.floor(Math.random() * 4);

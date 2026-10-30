@@ -162,3 +162,65 @@ export function buildDots(n = 5) {
   for (let i = 0; i < n; i++) lights.push(marker(body, 0, 0, 0, '#f6f8ff', 5, 'dot'));
   return { group, body, lights, materials: [] };
 }
+
+// LEGEND: the 1947 craft. A flat, heel-shaped wing (rounded front, swept
+// pointed tail, notched trailing edge) with a small fin hanging underneath.
+// Long axis is local X; the rounded nose points toward -X.
+export function build1947() {
+  const group = new THREE.Group();
+  group.rotation.order = 'YXZ';
+  const body = new THREE.Group();
+  group.add(body);
+  const s = new THREE.Shape();
+  s.moveTo(-4, 6);
+  s.absarc(-4, 0, 6, Math.PI / 2, (Math.PI * 3) / 2, false);
+  s.lineTo(6, -4.5);
+  s.lineTo(14, -0.4);
+  s.lineTo(13.2, 0.7);
+  s.quadraticCurveTo(8, 1.2, 5, 3.6);
+  s.lineTo(-4, 6);
+  const geo = new THREE.ExtrudeGeometry(s, { depth: 1.1, bevelEnabled: true, bevelThickness: 0.35, bevelSize: 0.35, bevelSegments: 1, curveSegments: 10 });
+  geo.rotateX(-Math.PI / 2).translate(0, -0.55, 0);
+  const hull = psx(new THREE.MeshPhongMaterial({ color: '#3a3b40', specular: '#c8ccd4', shininess: 60, fog: false, transparent: true }));
+  body.add(new THREE.Mesh(geo, hull));
+  const fin = new THREE.Mesh(new THREE.BoxGeometry(2.6, 3.4, 0.35).translate(0, -2.2, 0), hull);
+  fin.position.set(3, 0, 0.3);
+  fin.rotation.z = 0.25;
+  body.add(fin);
+  const lights = [marker(body, -1, 1.2, 0, '#ffffff', 9, 'glint')];
+  return { group, body, lights, materials: [hull] };
+}
+
+// LEGEND: the Phoenix Lights. A gigantic, nearly invisible chevron carrying
+// seven amber lights; later the lights hang in a row over the horizon.
+export const PHOENIX_LIGHTS = 7;
+export function buildPhoenix() {
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  group.add(body);
+  const hullMat = psx(new THREE.MeshBasicMaterial({ color: '#05060a', fog: false, transparent: true }));
+  const half = THREE.MathUtils.degToRad(30);
+  const len = 175;
+  const hull = new THREE.Group();
+  for (const side of [-1, 1]) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(18, 3, len).translate(0, 0, len / 2), hullMat);
+    arm.rotation.y = side * half;
+    hull.add(arm);
+  }
+  body.add(hull);
+  // Two layouts for the same lights: the flying V and the hanging row.
+  const vPos = [new THREE.Vector3(0, -2.5, 0)];
+  for (const f of [1 / 3, 2 / 3, 1]) {
+    for (const side of [-1, 1]) vPos.push(new THREE.Vector3(Math.sin(side * half) * len * f, -2.5, Math.cos(side * half) * len * f));
+  }
+  const order = [5, 3, 1, 0, 2, 4, 6]; // left-to-right across the V
+  const rowPos = [];
+  order.forEach((vi, slot) => {
+    const x = -150 + (slot * 300) / 6;
+    rowPos[vi] = new THREE.Vector3(x, -18 * (x / 150) * (x / 150) + Math.sin(slot * 1.7) * 3, 0);
+  });
+  const lights = [];
+  for (let i = 0; i < PHOENIX_LIGHTS; i++) lights.push(marker(body, vPos[i].x, vPos[i].y, vPos[i].z, '#ffe2a8', 11, 'light'));
+  for (let i = 0; i < PHOENIX_LIGHTS; i++) lights.push(marker(body, vPos[i].x, vPos[i].y - 1, vPos[i].z, '#ffb870', 30, 'halo'));
+  return { group, body, hull, lights, vPos, rowPos, order, materials: [hullMat] };
+}

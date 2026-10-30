@@ -27,7 +27,7 @@ save. The game appears at `https://<user>.github.io/ufo-games/` a minute or two 
 `package.json`, bump the version in the import map too.)
 
 Add `?debug` (or `#debug`) to the URL for dev keys: `[` / `]` change the hour, `\` toggles
-30x time, **1–6 spawn a saucer / cigar / triangle / sphere / V / dots nearby**, F9 spawns a glowing test
+30x time, **1–8 spawn a saucer / cigar / triangle / sphere / V / dots / '47 / Phoenix nearby**, F8 gives one of each lure, F9 spawns a glowing test
 orb, and F10 adds $500.
 
 ## Controls
@@ -43,6 +43,7 @@ orb, and F10 adds $500.
 | G | Flash mode: auto, on, off |
 | R | Swap film roll (cycles film types, wastes unused frames) |
 | F / B / T | Flashlight / binoculars / tripod (once you own them) |
+| L | Use a lure (out in the open) |
 | E | Interact (doors, store, payphone, packages) |
 | Tab or P | Photo album |
 | H | Toggle hints |
@@ -123,6 +124,22 @@ barking, crickets go silent, street lamps flicker underneath, and there's a hum.
 | **Sphere** (chrome orb, spiral grooves) | Rare; mostly day | Drops straight down out of the sky and stops dead: no bob, barely any drift, slowly turning. Its surface is a live reflection of the town and sky around it. Glides on a smooth curve to a new spot (once or twice), then shoots straight up and is gone. | $320 |
 | **V / boomerang** (huge dark chevron) | Dusk and night | Glides apex-first in a dead-straight line at constant speed, completely silent, five steady lights along its arms. On its way out the lights go dark one by one, and then it's gone. | $230 |
 | **Circling lights** (3–5 white dots) | Common; dusk and night | Very high. The dots circle one another, reverse direction, and one sometimes darts out of the group and back. The cluster drifts, then scatters in all directions or fades. Easy to mistake for stars, and you need zoom to get more than specks. | $70 |
+
+### Legends
+
+Two legendary craft exist. Each scheduled sighting has a 1.5% chance of being one (from day 2
+on): the Phoenix Lights at night, the '47 Visitor by day. That works out to roughly one a
+week of game time. The reliable way is a **lure**: buy one from the Skywatcher catalog, go
+somewhere open (the corn, the field west of Oak St, or the park) and press **L**. There's a 60%
+chance the legend turns up within the next game hour or so. Lenny's email on day 3 explains it
+all. The first legend photo unlocks **M. Gray**, who buys only legends, at 2.5x.
+
+| Legend | When / lure | How it moves | Base value |
+| --- | --- | --- | --- |
+| **The '47 Visitor** (flat heel-shaped wing, small fin underneath) | Day. Signal mirror, $60 | Streaks in from the horizon, flies 2–3 fast, wide circles overhead while fluttering and dipping like a skipped stone and flashing in the sun, then leaves in a straight line at absurd speed. Fast enough that you need to pan with it for a sharp shot. | $1200 |
+| **The Phoenix Lights** (seven amber lights on an enormous, nearly invisible V) | Night. Road flares, $90 | Drifts slowly, almost straight overhead, blotting out stars. Moves off toward the horizon, its lights settle into a hanging row, and then they go out one by one, left to right. | $1500 |
+
+Photo grading is pan-aware: tracking a fast mover with the camera cancels out its motion blur.
 
 Buyers have tastes: the Probe pays extra for saucers and Vs, Dr. Vos for spheres, triangles and
 cigars, and KCHV for spheres and daylight cigars. Nobody pays much for dots. Repeat shots of the same sighting sell for less. A craft that's moving

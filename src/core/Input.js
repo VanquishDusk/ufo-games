@@ -22,6 +22,7 @@ export const BINDINGS = {
   zoomIn: ['Equal', 'NumpadAdd'],
   zoomOut: ['Minus', 'NumpadSubtract'],
   help: ['KeyH'],
+  lure: ['KeyL'],
 };
 
 const PREVENT = new Set(['Tab', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);

@@ -30,29 +30,30 @@ export const BUYERS = [
   },
   {
     id: 'gray',
-    name: '???',
-    blurb: '[ NO CARRIER ]',
-    unlocked: () => false,
-    lockedText: 'Someone is watching your submissions.',
+    name: 'M. Gray',
+    blurb: 'No address. No phone number. Only interested in the legends, and pays like it.',
+    unlocked: (s) => !!s.flags.legendShot,
+    lockedText: '??? [ NO CARRIER ] Someone is watching your submissions.',
   },
 ];
 
 // Buyers' tastes: the tabloid loves saucers, Vos wants the strange stuff,
 // the news desk likes something they can see in daylight.
 const KIND_MULT = {
-  probe: { saucer: 1.3, cigar: 0.9, triangle: 1.0, sphere: 1.1, vee: 1.2, dots: 0.8 },
-  vos: { saucer: 1.0, cigar: 1.2, triangle: 1.35, sphere: 1.4, vee: 1.2, dots: 0.9 },
-  kchv: { saucer: 1.0, cigar: 1.25, triangle: 0.9, sphere: 1.3, vee: 1.0, dots: 0.6 },
+  probe: { saucer: 1.3, cigar: 0.9, triangle: 1.0, sphere: 1.1, vee: 1.2, dots: 0.8, k1947: 1.0, phoenix: 1.2 },
+  vos: { saucer: 1.0, cigar: 1.2, triangle: 1.35, sphere: 1.4, vee: 1.2, dots: 0.9, k1947: 1.4, phoenix: 1.1 },
+  kchv: { saucer: 1.0, cigar: 1.25, triangle: 0.9, sphere: 1.3, vee: 1.0, dots: 0.6, k1947: 1.0, phoenix: 1.5 },
 };
 
 const repMult = (state, id) => 1 + Math.min(10, state.rep[id] || 0) * 0.05;
 
 // Value of the anomalies in a photo, with repeat sightings discounted.
-function anomalyValue(report, state, buyerId) {
+function anomalyValue(report, state, buyerId, legendsOnly = false) {
   const seen = new Set(state.bought[buyerId] || []);
   let v = 0;
   for (const s of report.subjects) {
     if (s.category !== 'anomaly') continue;
+    if (legendsOnly && !s.legend) continue;
     const repeat = s.sightingId && seen.has(s.sightingId);
     v += s.value * s.score * (repeat ? 0.35 : 1) * (KIND_MULT[buyerId]?.[s.kind] ?? 1);
   }
@@ -67,6 +68,12 @@ export function appraise(photo, buyerId, state) {
   if (photo.sold) return { ok: false, reason: 'Already sold.' };
   const av = anomalyValue(r, state, buyerId);
   const hasAnomaly = av > 0.5;
+
+  if (buyerId === 'gray') {
+    const lv = anomalyValue(r, state, 'gray', true);
+    if (lv < 0.5) return { ok: false, reason: "M. Gray: 'Not that one.'" };
+    return { ok: true, offer: Math.round(lv * 2.5), line: 'An envelope of cash appears in your mailbox. Nobody saw who left it.' };
+  }
 
   if (buyerId === 'lenny') {
     if (hasAnomaly) return { ok: true, offer: Math.max(5, Math.round(av * 0.5 * repMult(state, 'lenny'))), line: "Lenny: 'DUDE. Okay. Okay okay okay. I'll scrape together what I can.'" };

@@ -256,7 +256,7 @@ export class Developer {
       const v = this.meterBuf[i * 4] / 255;
       fsum += Math.min(1, v * v * gain);
     }
-    return { canvas: this.canvas, metered, gain, shutter, evError, blurPx, finalMean: fsum / (32 * 24) };
+    return { canvas: this.canvas, metered, gain, shutter, evError, blurPx, angVel: opts.angVel.clone(), finalMean: fsum / (32 * 24) };
   }
 
   // Camcorder OSD text, with a little chroma ghosting so it sits in the tape.
