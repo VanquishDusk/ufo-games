@@ -695,7 +695,7 @@ class Orbs extends Craft {
     const k = i % half;
     const n = this.mgr.world.sky.night;
     const flick = 0.75 + 0.25 * noise1(this.t * 7 + k * 13, 4) + 0.1 * Math.sin(this.t * 23 + k);
-    return (this.vis?.[k] || 0) * flick * (L.role === 'halo' ? 0.22 : 1.3) * (0.35 + n * 0.8);
+    return (this.vis?.[k] || 0) * flick * (L.role === 'halo' ? 0.3 : 1.8) * (0.45 + n * 0.8);
   }
 }
 

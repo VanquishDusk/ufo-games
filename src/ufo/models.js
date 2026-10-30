@@ -231,8 +231,8 @@ export function buildOrbs(n = 4) {
   const body = new THREE.Group();
   group.add(body);
   const lights = [];
-  for (let i = 0; i < n; i++) lights.push(marker(body, 0, 0, 0, '#ff8a2e', 4.5, 'orb'));
-  for (let i = 0; i < n; i++) lights.push(marker(body, 0, 0, 0, '#ff5a1a', 13, 'halo'));
+  for (let i = 0; i < n; i++) lights.push(marker(body, 0, 0, 0, '#ff8a2e', 6.5, 'orb'));
+  for (let i = 0; i < n; i++) lights.push(marker(body, 0, 0, 0, '#ff5a1a', 18, 'halo'));
   return { group, body, lights, materials: [] };
 }
 
