@@ -37,6 +37,14 @@ export const BUYERS = [
   },
 ];
 
+// Buyers' tastes: the tabloid loves saucers, Vos wants the strange stuff,
+// the news desk likes something they can see in daylight.
+const KIND_MULT = {
+  probe: { saucer: 1.3, cigar: 0.9, triangle: 1.0 },
+  vos: { saucer: 1.0, cigar: 1.2, triangle: 1.35 },
+  kchv: { saucer: 1.0, cigar: 1.25, triangle: 0.9 },
+};
+
 const repMult = (state, id) => 1 + Math.min(10, state.rep[id] || 0) * 0.05;
 
 // Value of the anomalies in a photo, with repeat sightings discounted.
@@ -46,7 +54,7 @@ function anomalyValue(report, state, buyerId) {
   for (const s of report.subjects) {
     if (s.category !== 'anomaly') continue;
     const repeat = s.sightingId && seen.has(s.sightingId);
-    v += s.value * s.score * (repeat ? 0.35 : 1);
+    v += s.value * s.score * (repeat ? 0.35 : 1) * (KIND_MULT[buyerId]?.[s.kind] ?? 1);
   }
   return v;
 }

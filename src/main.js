@@ -17,6 +17,7 @@ import { Audio } from './audio/Audio.js';
 import { HUD } from './ui/HUD.js';
 import { Menus } from './ui/Menus.js';
 import { Touch } from './ui/Touch.js';
+import { UFOManager } from './ufo/UFOManager.js';
 import { newGameState, loadState, saveState, clearState, loadSettings, saveSettings } from './game/state.js';
 import { appraise, completeSale } from './game/economy.js';
 import { itemById, FILM } from './game/items.js';
@@ -58,7 +59,7 @@ class Game {
     this.input = new Input(this.canvas);
     this.audio = new Audio();
     this.settings = loadSettings();
-    this.debug = new URLSearchParams(location.search).has('debug');
+    this.debug = new URLSearchParams(location.search).has('debug') || location.hash === '#debug';
 
     this.world = new World(this.scene);
     this.player = new Player(this.camera, this.world);
@@ -69,6 +70,7 @@ class Game {
     this.hasSave = !!saved;
     this.state = saved || newGameState();
 
+    this.ufos = new UFOManager(this);
     this.photoCam = new PhotoCamera({ game: this, camera: this.camera, scene: this.scene, world: this.world, player: this.player, developer: this.developer, analyzer: this.analyzer });
     this.hud = new HUD(this);
     this.photoCam.frameFrac = this.hud.frameFrac;
@@ -430,6 +432,12 @@ class Game {
     if (input.keysPressed.has('BracketLeft')) this.state.hour = (this.state.hour + 23) % 24;
     if (input.keysPressed.has('Backslash')) this.timeScale = this.timeScale > 1 ? 1 : 30;
     if (input.keysPressed.has('F10')) this.state.money += 500;
+    for (const [code, type] of [['Digit1', 'saucer'], ['Digit2', 'cigar'], ['Digit3', 'triangle']]) {
+      if (input.keysPressed.has(code)) {
+        this.ufos.spawn(type, true);
+        this.hud.toast(`[debug] ${type} spawned nearby.`);
+      }
+    }
     if (input.keysPressed.has('F9')) {
       // A stand-in "anomaly" to test photo grading and selling end to end.
       const f = this.player.forward;
@@ -461,6 +469,7 @@ class Game {
     if (this.mode === 'play') {
       this.advanceHours((dt * GAME_MINUTES_PER_SECOND * this.timeScale) / 60);
       this._debug(input);
+      this.ufos.update(dt);
       const mods = this.photoCam.update(dt, input);
       this.player.update(dt, input, mods);
 
@@ -528,7 +537,7 @@ class Game {
 
   _debugLine() {
     const p = this.player.pos;
-    return `[debug] ${Math.round(this.fps)} fps &middot; ${p.x.toFixed(0)}, ${p.z.toFixed(0)} &middot; [ ] hour &middot; \\ fast &middot; F9 orb &middot; F10 $$$`;
+    return `[debug] ${Math.round(this.fps)} fps &middot; ${p.x.toFixed(0)}, ${p.z.toFixed(0)} &middot; [ ] hour &middot; \\ fast &middot; 1/2/3 saucer/cigar/triangle &middot; F9 orb &middot; F10 $$$`;
   }
 }
 

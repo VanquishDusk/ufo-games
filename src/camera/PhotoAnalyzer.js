@@ -17,6 +17,7 @@
 //   });
 import * as THREE from 'three';
 import { clamp } from '../core/rng.js';
+import { PHOTO_H } from './Developer.js';
 
 const _p = new THREE.Vector3();
 const _ndc = new THREE.Vector3();
@@ -79,8 +80,17 @@ export class PhotoAnalyzer {
       // Ideal: subject fills 15-60% of the frame height.
       const size = sizeFrac < 0.15 ? clamp(sizeFrac / 0.15, 0, 1) ** 0.7 : sizeFrac > 0.9 ? clamp(1.6 - sizeFrac, 0.3, 1) : 1;
       const inFrame = Math.abs(_ndc.x) < 1 && Math.abs(_ndc.y) < 1 ? 1 : 0.5;
+      // A moving subject smears across the frame during the exposure.
+      let motionPx = 0;
+      if (s.getVel) {
+        const v = s.getVel();
+        _dir.subVectors(_p, camera.position).normalize();
+        const perp = _off.copy(v).addScaledVector(_dir, -v.dot(_dir)).length();
+        motionPx = (perp / dist) * dev.shutter * (PHOTO_H / THREE.MathUtils.degToRad(camera.fov));
+      }
       subjects.push({
         id: s.id,
+        kind: s.kind || null,
         label: s.label,
         category: s.category,
         value: s.value || 0,
@@ -90,7 +100,8 @@ export class PhotoAnalyzer {
         size: +sizeFrac.toFixed(3),
         center: +center.toFixed(2),
         visibility: +vis.toFixed(2),
-        _base: size * vis * inFrame * (0.65 + 0.35 * center),
+        motionPx: +motionPx.toFixed(1),
+        _base: size * vis * inFrame * (0.65 + 0.35 * center) * (0.3 + 0.7 * clamp(1 - (motionPx - 1) / 12, 0, 1)),
       });
     }
 
@@ -116,6 +127,7 @@ export class PhotoAnalyzer {
     if (defocusPx > 1.5) notes.push('Out of focus');
     if (ev < -1.5) notes.push(ev < -3 ? 'Badly underexposed' : 'Underexposed');
     if (ev > 1.5) notes.push('Overexposed');
+    if (subjects.some((s) => s.category === 'anomaly' && s.motionPx > 4)) notes.push('Subject moving');
     if (!subjects.some((s) => s.category === 'anomaly')) notes.push('No anomalies');
 
     return {

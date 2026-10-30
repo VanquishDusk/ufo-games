@@ -7,9 +7,7 @@ twenty-five bucks and a dial-up modem.
 You photograph the strange stuff, then sell it from your home computer to tabloids,
 researchers and the local news. Better photos pay more, and better gear takes better photos.
 
-> **UFOs are not in the game yet.** Everything around them is: the town, the day/night
-> cycle, the camera, photo grading, the economy and the UI. Spawning a UFO and making it
-> sellable is one call; see [Adding UFOs](#adding-ufos).
+Three kinds of craft show up, rarely, and one at a time. See [UFOs](#ufos).
 
 ## Running it
 
@@ -19,9 +17,9 @@ npm run dev      # http://localhost:5173
 npm run build    # static build in dist/ (relative paths, works on any static host)
 ```
 
-Add `?debug` to the URL for dev keys: `[` / `]` change the hour, `\` toggles 30x time,
-**F9 spawns a glowing TEST ORB** (a stand-in anomaly worth $60, used to test grading
-and selling end to end), and F10 adds $500.
+Add `?debug` (or `#debug`) to the URL for dev keys: `[` / `]` change the hour, `\` toggles
+30x time, **1 / 2 / 3 spawn a saucer / cigar / triangle nearby**, F9 spawns a glowing test
+orb, and F10 adds $500.
 
 ## Controls
 
@@ -87,8 +85,8 @@ centered each one is, raycasts against the town to see how much of it is blocked
 the photo S through F on sharpness, exposure and framing.
 
 **Economy and progression.**
-- *Sell* from **UFO-NET** on your home PC. Buyers: Lenny's BBS (pays $1–4 for spooky shots,
-  3 a day, the only income until UFOs exist), The Weekly Probe (tabloid, tolerates blur),
+- *Sell* from **UFO-NET** on your home PC. Buyers: Lenny's BBS (pays $1–4 for spooky
+  non-UFO shots, 3 a day, and half price for real sightings), The Weekly Probe (tabloid, tolerates blur),
   Dr. Ingrid Vos (pays well, wants sharp evidence), KCHV Channel 7 (unlocks after 3 sightings
   sold) and a locked `???` buyer as a story hook. Reputation raises prices, and repeat photos of
   the same sighting are discounted.
@@ -101,31 +99,45 @@ the photo S through F on sharpness, exposure and framing.
 
 Settings and progress save automatically (localStorage for state, IndexedDB for photos).
 
-## Adding UFOs
+## UFOs
 
-Anything becomes photographable by pushing a subject into `world.subjects`:
+Sightings are rare: one craft at a time, with several game hours (several real minutes) between
+them. Night is busiest, and daytime sightings are rarer. The first night always brings a saucer
+a few minutes after dark. Each sighting has subtle cues instead of a HUD marker: dogs start
+barking, crickets go silent, street lamps flicker underneath, and there's a hum.
+
+| Type | When | How it moves | Base value |
+| --- | --- | --- | --- |
+| **Saucer** (silver disc, dome, ports) | Any time, mostly night | Glides in and decelerates to a hover over the corn, the west field, the water tower or the park. Wobbles, slowly spins, banks into motion. Snaps 40–100 m sideways in about half a second, then hovers again (1–3 times). At night it sometimes sinks to ~20 m over the field with its underside lit. Leaves with a violent acceleration. Rim lights chase at night. | $150 |
+| **Cigar** (metallic tube) | Mostly day and dusk | High (160–240 m), slow straight drift, lazy tilting and yawing. Flashes a sun glint when its angle lines up with you and the sun. Stops dead for a while, drifts on, then usually winks out (sometimes climbs away). Silent. | $130 |
+| **Black triangle** (42 m, matte black) | Night only | Slow, silent cruise over town at 75–125 m with a low hum you feel. Stops, rotates in place, carries on along a new heading, sometimes leaving in a hurry. White corner lights, pulsing red center. | $210 |
+
+Buyers have tastes: the Probe pays extra for saucers, Dr. Vos for triangles and cigars, and
+KCHV for daylight cigars. Repeat shots of the same sighting sell for less. A craft that's moving
+fast across the frame comes out smeared ("Subject moving"), so the saucer's darts and the
+cigar's exit are hard to catch.
+
+Flight plans and scheduling live in `src/ufo/UFOManager.js`; models are in `src/ufo/models.js`.
+
+### Adding more types
+
+Write a `Craft` subclass that builds its flight plan from timed segments (`this.seg(dur, fn)`,
+`this.hover(point, dur)`), add a model, and register it in `UFO_TYPES`. The manager registers
+every type as a photo subject. Anything else can become photographable the same way:
 
 ```js
 world.subjects.push({
-  id: 'ufo-17',               // unique
-  label: 'Saucer',            // shown on the photo report
+  id: 'ufo-17', label: 'Saucer', kind: 'saucer',
   category: 'anomaly',        // 'anomaly' = buyers pay for it ('landmark' = flavor only)
   value: 120,                 // base $ for a perfect shot
   sightingId: 'night4-a',     // repeat shots of one sighting sell for less
-  radius: 6,                  // world-space size in meters, used for framing math
-  pos: someVector3,           // or getPos: (camera, out) => out.copy(...) for movers
-  isActive: () => ufo.visible,// optional: only counts while true
+  radius: 6,                  // world-space size in meters, for framing math
+  pos: someVector3,           // or getPos: (camera, out) => ... for movers
+  getVel: () => velocity,     // optional: enables subject motion blur
+  isActive: () => visible,    // optional
   selfLuminous: true,         // optional: exposure matters less for glowing things
 });
 ```
-
-That's all the camera and economy need. A photo's value is `value` × how big, centered and
-unblocked it is × sharpness × exposure, adjusted per buyer. The debug TEST ORB in `main.js`
-(`_debug`) is a working example. For glowing lights, `world.glows.add(pos, color, size)`
-gives you an additive point sprite that `world.glows.set(i, intensity)` can animate.
-
-Natural places to start: the corn field behind your house (`ZONES.corn`), the empty field
-west of Oak St (`ZONES.field`), the radio mast, and the water tower.
 
 ## Code map
 
@@ -147,6 +159,9 @@ src/
     geo.js             geometry batching (merged + spatially chunked meshes)
     Colliders.js       2.5D circle/oriented-box collisions on a grid
   player/Player.js     first-person movement, head bob, look velocity
+  ufo/
+    UFOManager.js      sighting scheduler, flight plans per type, cues, photo subjects
+    models.js          saucer / cigar / black triangle models + light markers
   camera/
     PhotoCamera.js     gear state: raise, zoom, AF, sway, breath, flash, film, tripod...
     Developer.js       offscreen render + metering + VHS shader + date stamp -> JPEG

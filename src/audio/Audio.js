@@ -18,6 +18,8 @@ export class Audio {
     bus.on('shutter', ({ flash, wind }) => this.shutter(flash, wind));
     bus.on('sfx', (name) => this.sfx(name));
     bus.on('zoom', () => this.zoomTick());
+    bus.on('ufoAudio', (a) => this.ufoAudio(a));
+    this.hush = false;
   }
 
   // Must be called from a user gesture.
@@ -234,12 +236,64 @@ export class Audio {
         this._tone({ freq: 440, dur: 1.2, type: 'sine', peak: 0.04 });
         this._noiseBurst({ t0: t + 1.3, dur: 2.5, type: 'bandpass', freq: 1800, q: 0.5, peak: 0.03, attack: 0.5 });
         break;
+      case 'dogs':
+        for (let d = 0; d < 3; d++) {
+          const n = 3 + Math.floor(Math.random() * 4);
+          const f = 380 + d * 120 + Math.random() * 80;
+          for (let i = 0; i < n; i++) {
+            const t0 = t + d * 0.4 + i * (0.28 + Math.random() * 0.15);
+            this._noiseBurst({ t0, dur: 0.12, type: 'bandpass', freq: f * 1.8, q: 3, peak: 0.05 / (d + 1), dest: this.amb });
+            this._tone({ t0, freq: f, freq2: f * 0.7, dur: 0.12, type: 'sawtooth', peak: 0.012 / (d + 1), dest: this.amb });
+          }
+        }
+        break;
       case 'package':
         this._noiseBurst({ dur: 0.2, type: 'bandpass', freq: 600, peak: 0.15 });
         break;
       default:
         break;
     }
+  }
+
+  // Continuous craft sound: saucers warble, triangles hum low.
+  ufoAudio({ kind, level, hush }) {
+    this.hush = !!hush && level > 0.02;
+    if (!this.ctx) return;
+    const c = this.ctx;
+    if (!this.ufoGain) {
+      this.ufoGain = c.createGain();
+      this.ufoGain.gain.value = 0;
+      this.ufoGain.connect(this.amb);
+      this.ufoOsc = c.createOscillator();
+      this.ufoOsc2 = c.createOscillator();
+      this.ufoOsc2.type = 'triangle';
+      this.ufoLfo = c.createOscillator();
+      this.ufoLfoGain = c.createGain();
+      this.ufoLfo.connect(this.ufoLfoGain).connect(this.ufoOsc.frequency);
+      const lp = c.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 400;
+      this.ufoOsc.connect(lp);
+      this.ufoOsc2.connect(lp);
+      lp.connect(this.ufoGain);
+      this.ufoOsc.start();
+      this.ufoOsc2.start();
+      this.ufoLfo.start();
+    }
+    const t = c.currentTime;
+    if (kind === 'saucer') {
+      this.ufoOsc.frequency.setTargetAtTime(150, t, 0.2);
+      this.ufoOsc2.frequency.setTargetAtTime(301, t, 0.2);
+      this.ufoLfo.frequency.setTargetAtTime(6, t, 0.2);
+      this.ufoLfoGain.gain.setTargetAtTime(25, t, 0.2);
+    } else if (kind === 'triangle') {
+      this.ufoOsc.frequency.setTargetAtTime(44, t, 0.2);
+      this.ufoOsc2.frequency.setTargetAtTime(66.5, t, 0.2);
+      this.ufoLfo.frequency.setTargetAtTime(0.4, t, 0.2);
+      this.ufoLfoGain.gain.setTargetAtTime(2, t, 0.2);
+    }
+    const peak = kind === 'triangle' ? 0.16 : 0.035;
+    this.ufoGain.gain.setTargetAtTime(kind ? level * level * peak : 0, t, 0.4);
   }
 
   // ~2s of handshake screech, abridged.
@@ -275,9 +329,9 @@ export class Audio {
     this.humGain.gain.value = 0.004 + night * 0.004;
     if (inside) return;
 
-    // Crickets: chirp trains, louder at night.
+    // Crickets: chirp trains, louder at night. They go silent near a craft.
     this._cricketT -= dt;
-    if (this._cricketT <= 0 && night > 0.2) {
+    if (this._cricketT <= 0 && night > 0.2 && !this.hush) {
       this._cricketT = 0.25 + Math.random() * 0.6;
       const t = this.t;
       const f = 4200 + Math.random() * 900;
@@ -287,7 +341,7 @@ export class Audio {
     }
     // Birds in daylight.
     this._birdT -= dt;
-    if (this._birdT <= 0 && night < 0.6) {
+    if (this._birdT <= 0 && night < 0.6 && !this.hush) {
       this._birdT = 1.2 + Math.random() * 4;
       const t = this.t;
       const base = 2400 + Math.random() * 1800;

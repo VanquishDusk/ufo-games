@@ -269,6 +269,12 @@ export class World {
         const f = hash(Math.floor(time * 9), l.phase * 100);
         on = f < 0.12 ? 0.05 : f < 0.2 ? 0.5 : 1;
       }
+      // Something overhead is messing with the power.
+      const D = this.disturb;
+      if (on && D && Math.hypot(l.pos.x - D.x, l.pos.z - D.z) < D.r) {
+        const f = hash(Math.floor(time * 14), l.phase * 77);
+        on = f < 0.35 ? 0.05 : f < 0.55 ? 0.4 : 1;
+      }
       l.on = on;
       this.glows.set(l.glow, on);
       this.pools.set(l.pool, on * 0.55);
