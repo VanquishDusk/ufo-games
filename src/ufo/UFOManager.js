@@ -581,7 +581,7 @@ class Phoenix extends Craft {
     const over = V(p.x, rng.float(220, 270), p.z).addScaledVector(side, rng.float(-50, 50));
     const start = over.clone().addScaledVector(dir, -560);
     const passEnd = over.clone().addScaledVector(dir, 240);
-    const hang = V(p.x, rng.float(120, 160), p.z).addScaledVector(dir, 700).addScaledVector(side, rng.float(-120, 120));
+    const hang = V(p.x, rng.float(150, 195), p.z).addScaledVector(dir, 480).addScaledVector(side, rng.float(-80, 80));
     const yawPass = Math.atan2(-dir.x, -dir.z);
     const toViewer = V(p.x - hang.x, 0, p.z - hang.z).normalize();
     const yawHang = Math.atan2(-toViewer.x, -toViewer.z);

@@ -220,7 +220,7 @@ export function buildPhoenix() {
     rowPos[vi] = new THREE.Vector3(x, -18 * (x / 150) * (x / 150) + Math.sin(slot * 1.7) * 3, 0);
   });
   const lights = [];
-  for (let i = 0; i < PHOENIX_LIGHTS; i++) lights.push(marker(body, vPos[i].x, vPos[i].y, vPos[i].z, '#ffe2a8', 11, 'light'));
+  for (let i = 0; i < PHOENIX_LIGHTS; i++) lights.push(marker(body, vPos[i].x, vPos[i].y, vPos[i].z, '#ffe2a8', 13, 'light'));
   for (let i = 0; i < PHOENIX_LIGHTS; i++) lights.push(marker(body, vPos[i].x, vPos[i].y - 1, vPos[i].z, '#ffb870', 30, 'halo'));
   return { group, body, hull, lights, vPos, rowPos, order, materials: [hullMat] };
 }
