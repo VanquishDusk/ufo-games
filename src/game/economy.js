@@ -40,9 +40,9 @@ export const BUYERS = [
 // Buyers' tastes: the tabloid loves saucers, Vos wants the strange stuff,
 // the news desk likes something they can see in daylight.
 const KIND_MULT = {
-  probe: { saucer: 1.3, cigar: 0.9, triangle: 1.0 },
-  vos: { saucer: 1.0, cigar: 1.2, triangle: 1.35 },
-  kchv: { saucer: 1.0, cigar: 1.25, triangle: 0.9 },
+  probe: { saucer: 1.3, cigar: 0.9, triangle: 1.0, sphere: 1.1, vee: 1.2, dots: 0.8 },
+  vos: { saucer: 1.0, cigar: 1.2, triangle: 1.35, sphere: 1.4, vee: 1.2, dots: 0.9 },
+  kchv: { saucer: 1.0, cigar: 1.25, triangle: 0.9, sphere: 1.3, vee: 1.0, dots: 0.6 },
 };
 
 const repMult = (state, id) => 1 + Math.min(10, state.rep[id] || 0) * 0.05;

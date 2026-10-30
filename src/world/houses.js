@@ -198,13 +198,13 @@ export function buildHouse(lot, index, ctx) {
 
   // Walkway to the sidewalk.
   const walkStart = zfB + 1.8;
-  conc.box(L, doorX, 0.02, walkStart / 2, 1.2, 0.12, -walkStart, '#bab6ac', { ts: 1.2, skip: 'b' });
+  conc.box(L, doorX, 0.08, walkStart / 2, 1.2, 0.24, -walkStart, '#bab6ac', { ts: 1.2, skip: 'b' });
 
   // Driveway.
   const driveX = hasGarage ? gx : bx + gSide * (W / 2 + 2.8);
   const driveFrom = hasGarage ? gz + gD / 2 : bz;
   const dLen = 2.0 - driveFrom;
-  conc.box(L, driveX, 0.035, driveFrom + dLen / 2, 5.4, 0.12, dLen, DRIVE, { ts: 2.7, skip: 'b' });
+  conc.box(L, driveX, 0.13, driveFrom + dLen / 2, 5.4, 0.24, dLen, DRIVE, { ts: 2.7, skip: 'b' });
 
   // Windows.
   const addWindow = (faceM, w, h) => {

@@ -42,16 +42,16 @@ export function buildStreets(ctx) {
 
   for (const s of STREETS) {
     const r = streetRect(s);
-    asph.ground(r[0], r[1], r[2], r[3], 0.02, white, 5);
+    asph.ground(r[0], r[1], r[2], r[3], 0.07, white, 5);
     for (const side of [-1, 1]) {
       for (const seg of sidewalkSegments(s, side)) {
-        if (s.axis === 'x') conc.box(I, (seg.a + seg.b) / 2, 0.02, seg.off, seg.b - seg.a, 0.12, WALK_W, walkCol, { ts: 2, skip: 'b' });
-        else conc.box(I, seg.off, 0.02, (seg.a + seg.b) / 2, WALK_W, 0.12, seg.b - seg.a, walkCol, { ts: 2, skip: 'b' });
+        if (s.axis === 'x') conc.box(I, (seg.a + seg.b) / 2, 0.08, seg.off, seg.b - seg.a, 0.24, WALK_W, walkCol, { ts: 2, skip: 'b' });
+        else conc.box(I, seg.off, 0.08, (seg.a + seg.b) / 2, WALK_W, 0.24, seg.b - seg.a, walkCol, { ts: 2, skip: 'b' });
       }
     }
     const c = culCenter(s);
     if (c) {
-      asph.disc(c.x, c.z, 0, CUL_R, 0.02, white, 28, 5);
+      asph.disc(c.x, c.z, 0, CUL_R, 0.07, white, 28, 5);
       // Sidewalk ring with a gap where the street enters.
       const entry = s.axis === 'x' ? (s.cul === 'b' ? Math.PI : 0) : s.cul === 'b' ? -Math.PI / 2 : Math.PI / 2;
       const gap = Math.asin((ROAD_HALF + WALK_W) / (CUL_R + WALK_W)) + 0.05;
@@ -62,7 +62,7 @@ export function buildStreets(ctx) {
         const mid = (a0 + a1) / 2;
         let d = Math.abs(((mid - entry + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
         if (d < gap) continue;
-        const p = (a, rr) => V3(c.x + Math.cos(a) * rr, 0.08, c.z + Math.sin(a) * rr);
+        const p = (a, rr) => V3(c.x + Math.cos(a) * rr, 0.2, c.z + Math.sin(a) * rr);
         const u = (v) => [v.x / 2, -v.z / 2];
         const i0 = p(a0, CUL_R),
           i1 = p(a1, CUL_R),
@@ -84,19 +84,19 @@ export function buildStreets(ctx) {
   }
   segs.push([x, maple.b]);
   for (const [a, b] of segs) {
-    paint.ground(a, -0.2, b, -0.1, 0.035, yellow);
-    paint.ground(a, 0.1, b, 0.2, 0.035, yellow);
+    paint.ground(a, -0.2, b, -0.1, 0.12, yellow);
+    paint.ground(a, 0.1, b, 0.2, 0.12, yellow);
   }
   // Stop bars where side streets meet Maple.
   for (const s of STREETS) {
     if (s.axis !== 'z') continue;
-    if (s.a < -ROAD_HALF) paint.ground(s.c - ROAD_HALF, -ROAD_HALF - 1.6, s.c, -ROAD_HALF - 1.2, 0.035, white);
-    if (s.b > ROAD_HALF) paint.ground(s.c, ROAD_HALF + 1.2, s.c + ROAD_HALF, ROAD_HALF + 1.6, 0.035, white);
+    if (s.a < -ROAD_HALF) paint.ground(s.c - ROAD_HALF, -ROAD_HALF - 1.6, s.c, -ROAD_HALF - 1.2, 0.12, white);
+    if (s.b > ROAD_HALF) paint.ground(s.c, ROAD_HALF + 1.2, s.c + ROAD_HALF, ROAD_HALF + 1.6, 0.12, white);
   }
   // Zebra crossing at the park.
   for (let i = 0; i < 6; i++) {
     const z0 = -ROAD_HALF + 0.4 + i * 1.45;
-    paint.ground(-6, z0, -2.5, z0 + 0.7, 0.035, white);
+    paint.ground(-6, z0, -2.5, z0 + 0.7, 0.12, white);
   }
 }
 
@@ -156,7 +156,7 @@ export function buildStreetlights(ctx) {
     const head = new THREE.Vector3(0, height - 0.22, 1.7).applyMatrix4(M);
     const lamp = lamps.add(mul(M, mat(0, height - 0.2, 1.75, 0, 0.32, 0.14, 0.62)), '#ffd08a');
     const glow = glows.add(V3(head.x, head.y - 0.12, head.z), '#ffb060', 2.2);
-    const pool = pools.add(mat(head.x, 0.1, head.z, 0, poolSize, 1, poolSize), '#d0802e');
+    const pool = pools.add(mat(head.x, 0.32, head.z, 0, poolSize, 1, poolSize), '#d0802e');
     colliders.addCircle(x, z, 0.14, height);
     lights.push({ pos: head, lamp, glow, pool, phase: rng.next(), flicker: rng.next() < 0.07, kind: 'street' });
   };
@@ -436,9 +436,9 @@ export function buildPark(ctx) {
   const rng = new RNG(311);
 
   // Paths: entrance from Maple, loop around the gazebo.
-  conc.box(I, -4.25, 0.02, (-6.5 + cz + 16) / 2, 2.2, 0.12, -6.5 - (cz + 16) + 0.1, pathCol, { ts: 2, skip: 'b' });
-  conc.disc(cx, cz, 15, 17, 0.08, pathCol, 32, 2);
-  conc.disc(cx, cz, 0, 4.6, 0.09, new THREE.Color('#a8a296'), 12, 2);
+  conc.box(I, -4.25, 0.07, (-6.5 + cz + 16) / 2, 2.2, 0.24, -6.5 - (cz + 16) + 0.1, pathCol, { ts: 2, skip: 'b' });
+  conc.disc(cx, cz, 15, 17, 0.2, pathCol, 32, 2);
+  conc.disc(cx, cz, 0, 4.6, 0.2, new THREE.Color('#a8a296'), 12, 2);
 
   // Gazebo.
   const post = (px, pz) => {
@@ -457,7 +457,7 @@ export function buildPark(ctx) {
   // Playground.
   const px = x0 + 14;
   const pz = z1 - 18;
-  B.get('paint').disc(px, pz, 0, 9, 0.025, new THREE.Color('#9a7a50'), 20);
+  B.get('paint').disc(px, pz, 0, 9, 0.04, new THREE.Color('#9a7a50'), 20);
   for (const sx of [-2.4, 2.4]) {
     for (const sz of [-0.9, 0.9]) plain.box(I, px + sx, 1.3, pz + sz, 0.1, 2.6, 0.1, '#b83a2a');
     colliders.addBox(px + sx, pz, 0.1, 0.9, 0, 2.6);
@@ -490,7 +490,7 @@ export function buildPark(ctx) {
   // Ball field + backstop in the back corner.
   const bx = x1 - 16;
   const bz = z0 + 14;
-  B.get('paint').disc(bx, bz, 0, 13, 0.025, new THREE.Color('#a8845a'), 24);
+  B.get('paint').disc(bx, bz, 0, 13, 0.04, new THREE.Color('#a8845a'), 24);
   for (const [ox, oz] of [
     [0, 0],
     [6, 6],
@@ -571,10 +571,10 @@ export function buildStore(ctx) {
   const paint = B.get('paint');
   const white = new THREE.Color('#ffffff');
 
-  asph.ground(x0, z0, x1, -6.5, 0.025, white, 5);
-  asph.box(I, 124, 0.03, -5.5, 8, 0.12, 2.0, white, { ts: 5 });
-  asph.box(I, 164, 0.03, -5.5, 8, 0.12, 2.0, white, { ts: 5 });
-  for (let i = 0; i < 6; i++) paint.ground(150 + i * 3.2, -31.5, 150.12 + i * 3.2, -26, 0.04, new THREE.Color('#e8e6dc'));
+  asph.ground(x0, z0, x1, -6.5, 0.07, white, 5);
+  asph.box(I, 124, 0.13, -5.5, 8, 0.24, 2.0, white, { ts: 5 });
+  asph.box(I, 164, 0.13, -5.5, 8, 0.24, 2.0, white, { ts: 5 });
+  for (let i = 0; i < 6; i++) paint.ground(150 + i * 3.2, -31.5, 150.12 + i * 3.2, -26, 0.12, new THREE.Color('#e8e6dc'));
 
   // Building.
   const sbx = 150;
@@ -647,7 +647,7 @@ export function buildStore(ctx) {
     }
     colliders.addBox(gx + ox, gz, 0.6, 3.3, 0, 1.8);
   }
-  const canopyLight = { pos: V3(gx, 4.5, gz), pools: [pools.add(mat(gx, 0.11, gz, 0, 26, 1, 16), '#c8d8e8')] };
+  const canopyLight = { pos: V3(gx, 4.5, gz), pools: [pools.add(mat(gx, 0.32, gz, 0, 26, 1, 16), '#c8d8e8')] };
 
   // Price sign by the road.
   const ps = V3(124, 0, -9.5);
@@ -779,7 +779,7 @@ export function buildCorn(ctx) {
   im.computeBoundingSphere();
   scene.add(im);
   // Dirt between rows.
-  ctx.batch.get('paint').ground(x0, z0, x1, z1, 0.015, new THREE.Color('#7a6a4a'));
+  ctx.batch.get('paint').ground(x0, z0, x1, z1, 0.04, new THREE.Color('#7a6a4a'));
   return im;
 }
 

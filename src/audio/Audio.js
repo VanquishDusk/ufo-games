@@ -257,7 +257,7 @@ export class Audio {
 
   // Continuous craft sound: saucers warble, triangles hum low.
   ufoAudio({ kind, level, hush }) {
-    this.hush = !!hush && level > 0.02;
+    this.hush = !!hush;
     if (!this.ctx) return;
     const c = this.ctx;
     if (!this.ufoGain) {

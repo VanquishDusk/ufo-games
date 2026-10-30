@@ -299,7 +299,7 @@ export class Menus {
 
   r_settings() {
     const s = this.game.settings;
-    const res = { crunchy: 'CRUNCHY (240p)', retro: 'RETRO (300p)', sharp: 'SHARP (480p)' }[s.resolution];
+    const res = { crunchy: 'CRUNCHY (270p)', retro: 'RETRO (360p)', sharp: 'SHARP (540p)' }[s.resolution];
     return `<div class="panel osd"><h2>SETTINGS</h2>
       <div class="setting"><span>MOUSE SENSITIVITY</span><input type="range" min="0.2" max="3" step="0.05" value="${s.sensitivity}" data-set="sensitivity"></div>
       <div class="setting"><span>VOLUME</span><input type="range" min="0" max="1" step="0.05" value="${s.volume}" data-set="volume"></div>

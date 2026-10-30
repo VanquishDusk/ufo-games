@@ -22,7 +22,7 @@ import { appraise, completeSale } from './game/economy.js';
 import { itemById, FILM } from './game/items.js';
 import { formatClock, GAME_MINUTES_PER_SECOND } from './game/clock.js';
 
-const RES = { crunchy: 224, retro: 300, sharp: 480 };
+const RES = { crunchy: 270, retro: 360, sharp: 540 };
 const SURNAMES = ['Kowalski', 'Henderson', 'Petrakis', 'Nguyen', 'Delgado', "O'Brien", 'Whitfield', 'Marsh', 'Okafor', 'Lindqvist', 'Brennan', 'Haskell', 'Tanaka', 'Rourke', 'Abernathy', 'Castellano', 'Pruitt', 'Vance'];
 const KNOCK_LINES = [
   "{n}: 'Not buying anything, sorry.'",
@@ -52,7 +52,7 @@ class Game {
     this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: false, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(1);
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.1, 1500);
+    this.camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.2, 1500);
     this.scene.add(this.camera);
     this.pipeline = new RetroPipeline(this.renderer);
     this.input = new Input(this.canvas);
@@ -140,7 +140,7 @@ class Game {
     const s = this.settings;
     this.player.sensitivity = s.sensitivity;
     this.player.invertY = s.invertY;
-    this.pipeline.targetHeight = RES[s.resolution] || 300;
+    this.pipeline.targetHeight = RES[s.resolution] || 360;
     this.pipeline.wobble = s.wobble;
     this.audio.setVolume(s.volume);
     if (this.pipeline.screenW) this.pipeline.setSize(this.pipeline.screenW, this.pipeline.screenH);
@@ -431,7 +431,7 @@ class Game {
     if (input.keysPressed.has('BracketLeft')) this.state.hour = (this.state.hour + 23) % 24;
     if (input.keysPressed.has('Backslash')) this.timeScale = this.timeScale > 1 ? 1 : 30;
     if (input.keysPressed.has('F10')) this.state.money += 500;
-    for (const [code, type] of [['Digit1', 'saucer'], ['Digit2', 'cigar'], ['Digit3', 'triangle']]) {
+    for (const [code, type] of [['Digit1', 'saucer'], ['Digit2', 'cigar'], ['Digit3', 'triangle'], ['Digit4', 'sphere'], ['Digit5', 'vee'], ['Digit6', 'dots']]) {
       if (input.keysPressed.has(code)) {
         this.ufos.spawn(type, true);
         this.hud.toast(`[debug] ${type} spawned nearby.`);
@@ -536,7 +536,7 @@ class Game {
 
   _debugLine() {
     const p = this.player.pos;
-    return `[debug] ${Math.round(this.fps)} fps &middot; ${p.x.toFixed(0)}, ${p.z.toFixed(0)} &middot; [ ] hour &middot; \\ fast &middot; 1/2/3 saucer/cigar/triangle &middot; F9 orb &middot; F10 $$$`;
+    return `[debug] ${Math.round(this.fps)} fps &middot; ${p.x.toFixed(0)}, ${p.z.toFixed(0)} &middot; [ ] hour &middot; \\ fast &middot; 1-6 spawn UFO &middot; F9 orb &middot; F10 $$$`;
   }
 }
 

@@ -66,7 +66,7 @@ export function supportsHalfFloatRT(renderer) {
 export class RetroPipeline {
   constructor(renderer) {
     this.renderer = renderer;
-    this.targetHeight = 300;
+    this.targetHeight = 360;
     this.wobble = true;
     this.halfFloat = supportsHalfFloatRT(renderer);
     this.target = new THREE.WebGLRenderTarget(4, 4, {
@@ -79,8 +79,8 @@ export class RetroPipeline {
       uniforms: {
         tScene: { value: this.target.texture },
         lowRes: { value: new THREE.Vector2(4, 4) },
-        levels: { value: 31 },
-        dither: { value: 1 },
+        levels: { value: 48 },
+        dither: { value: 0.85 },
         fade: { value: 1 },
         tint: { value: new THREE.Color(1, 1, 1) },
       },

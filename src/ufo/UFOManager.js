@@ -11,13 +11,35 @@
 import * as THREE from 'three';
 import { bus } from '../core/events.js';
 import { RNG, clamp, noise1 } from '../core/rng.js';
-import { buildSaucer, buildCigar, buildTriangle } from './models.js';
+import { buildSaucer, buildCigar, buildTriangle, buildSphere, buildV, buildDots } from './models.js';
 import { ZONES, LANDMARKS } from '../world/layout.js';
 
 export const UFO_TYPES = {
   saucer: { label: 'Flying saucer', value: 150, radius: 7.2 },
   cigar: { label: 'Cigar-shaped craft', value: 130, radius: 11 },
   triangle: { label: 'Black triangle', value: 210, radius: 20 },
+  sphere: { label: 'Metallic sphere', value: 320, radius: 2.8 },
+  vee: { label: 'V-shaped craft', value: 230, radius: 26 },
+  dots: { label: 'Circling lights', value: 70, radius: 30 },
+};
+
+// Per-type side effects. audio: which sound it makes; hush: wildlife goes
+// quiet nearby; disturb: lamps flicker when it's low overhead.
+const FX = {
+  saucer: { audio: 'saucer', hush: true, disturb: true },
+  cigar: { audio: null, hush: false, disturb: false },
+  triangle: { audio: 'triangle', hush: true, disturb: true },
+  sphere: { audio: null, hush: true, disturb: true },
+  vee: { audio: null, hush: true, disturb: false },
+  dots: { audio: null, hush: false, disturb: false },
+};
+
+// Relative odds by time of day. Dots are the everyday sighting, the sphere
+// is the rare prize (and mostly a daylight thing).
+const ODDS = {
+  night: { dots: 38, saucer: 22, triangle: 18, vee: 15, sphere: 3 },
+  twilight: { dots: 20, cigar: 22, saucer: 22, vee: 24, sphere: 8 },
+  day: { cigar: 64, saucer: 22, sphere: 14 },
 };
 
 // Places a saucer likes to hang around.
@@ -316,6 +338,170 @@ class Triangle extends Craft {
   }
 }
 
+class Sphere extends Craft {
+  constructor(mgr, model, rng, { near }) {
+    super(mgr, 'sphere', model, rng);
+    const player = mgr.player.pos;
+    const a = rng.float(0, Math.PI * 2);
+    const r = near ? 55 : rng.float(70, 160);
+    const p0 = V(player.x + Math.cos(a) * r, rng.float(35, 70), player.z + Math.sin(a) * r);
+    // Drops straight down out of the sky and stops dead.
+    const start = p0.clone().add(V(0, 320, 0));
+    this.pos.copy(start);
+    this.seg(rng.float(5, 7), (k) => this.pos.lerpVectors(start, p0, E.outCubic(k)), 'arrive');
+    let cur = p0;
+    // Eerily still: no bob, barely any drift.
+    this.hover(cur, rng.float(15, 25), 'hover', 0.05, 0.3);
+    const arcs = rng.chance(0.5) ? 2 : 1;
+    for (let i = 0; i < arcs; i++) {
+      const ang = rng.float(0, Math.PI * 2);
+      const next = V(cur.x + Math.cos(ang) * rng.float(60, 120), clamp(cur.y + rng.float(-15, 20), 25, 90), cur.z + Math.sin(ang) * rng.float(60, 120));
+      const ctrl = cur.clone().lerp(next, 0.5).add(V(rng.float(-40, 40), rng.float(10, 30), rng.float(-40, 40)));
+      const from = cur.clone();
+      // Smooth curved glide along a quadratic bezier.
+      this.seg(rng.float(8, 12), (k) => {
+        const t = E.inOutSine(k);
+        const u = 1 - t;
+        this.pos.set(u * u * from.x + 2 * u * t * ctrl.x + t * t * next.x, u * u * from.y + 2 * u * t * ctrl.y + t * t * next.y, u * u * from.z + 2 * u * t * ctrl.z + t * t * next.z);
+      }, 'glide');
+      this.hover(next, rng.float(10, 18), 'hover', 0.05, 0.3);
+      cur = next;
+    }
+    // Leaves straight up, fast.
+    const last = cur.clone();
+    const drift = V(rng.float(-1, 1), 0, rng.float(-1, 1)).normalize().multiplyScalar(60);
+    this.seg(4, (k) => {
+      const e = Math.pow(k, 2.5);
+      this.pos.set(last.x + drift.x * e, last.y + 1400 * e, last.z + drift.z * e);
+      this.alpha = clamp(1 - (this.pos.y - 500) / 300, 0, 1);
+    }, 'climb');
+    this.envT = 0;
+  }
+
+  animate(dt) {
+    this.model.body.rotation.y += dt * 0.5;
+    this.model.body.rotation.x = Math.sin(this.t * 0.3) * 0.25;
+    this.envT -= dt;
+    if (this.envT <= 0) {
+      this.envT = 1.5;
+      this.mgr.captureEnv(this);
+    }
+    for (const m of this.model.materials) {
+      m.transparent = this.alpha < 1;
+      m.opacity = this.alpha;
+    }
+    this.model.group.visible = this.alpha > 0.01;
+  }
+
+  lightLevel(L) {
+    const sky = this.mgr.world.sky;
+    if (L.role === 'aura') return 0.12 * sky.night;
+    // Specular point where the sun would reflect toward the viewer.
+    if (sky.sunDir.y < -0.03) return 0;
+    _w.subVectors(this.mgr.camera.position, this.pos).normalize().add(sky.sunDir).normalize();
+    L.obj.position.copy(_w).multiplyScalar(2.65);
+    L.obj.parent.worldToLocal(L.obj.position.add(this.pos));
+    return 1.6 * sky.daylight;
+  }
+}
+
+class Vee extends Craft {
+  constructor(mgr, model, rng, { near }) {
+    super(mgr, 'vee', model, rng);
+    const player = mgr.player.pos;
+    const h = rng.float(0, Math.PI * 2);
+    const dir = V(Math.cos(h), 0, Math.sin(h));
+    const side = V(-dir.z, 0, dir.x);
+    const P = V(player.x, rng.float(110, 170), player.z).addScaledVector(side, (near ? 30 : rng.float(50, 200)) * rng.sign());
+    const reach = near ? 380 : 700;
+    const start = P.clone().addScaledVector(dir, -reach);
+    const end = P.clone().addScaledVector(dir, reach);
+    const speed = rng.float(13, 17);
+    this.yaw = Math.atan2(-dir.x, -dir.z);
+    this.pos.copy(start);
+    // Constant speed, dead straight, silent.
+    this.offAt = rng.float(0.6, 0.85);
+    this.lightsOn = [1, 1, 1, 1, 1];
+    this.seg((reach * 2) / speed, (k) => {
+      this.pos.lerpVectors(start, end, k);
+      // Lights go out one at a time, then it's simply gone.
+      for (let i = 0; i < 5; i++) this.lightsOn[i] = k > this.offAt + i * 0.025 ? 0 : 1;
+      this.alpha = clamp(1 - (k - (this.offAt + 0.14)) * 20, 0, 1);
+      if (this.alpha <= 0) this.done = true;
+    }, 'cruise');
+  }
+
+  animate() {
+    this.group.rotation.set(0, this.yaw, 0);
+    this.model.group.visible = this.alpha > 0.01;
+  }
+
+  lightLevel(L, i) {
+    const n = this.mgr.world.sky.night;
+    const on = this.lightsOn[i % 5];
+    return on * (L.role === 'halo' ? 0.16 : 1.15) * (0.25 + n * 0.85);
+  }
+}
+
+class Dots extends Craft {
+  constructor(mgr, model, rng, { near }) {
+    super(mgr, 'dots', model, rng);
+    const player = mgr.player.pos;
+    const a = rng.float(0, Math.PI * 2);
+    const r = near ? 90 : rng.float(80, 260);
+    const c0 = V(player.x + Math.cos(a) * r, rng.float(200, 300), player.z + Math.sin(a) * r);
+    this.count = rng.int(3, model.lights.length);
+    this.orbits = [];
+    for (let i = 0; i < model.lights.length; i++) {
+      this.orbits.push({ r: rng.float(10, 34), w: rng.float(0.25, 0.65) * rng.sign(), ph: rng.float(0, 6.28), y: rng.float(-6, 6), flip: rng.float(6, 20), dir: 1, zip: 0 });
+    }
+    const drift = V(rng.float(-2.5, 2.5), 0, rng.float(-2.5, 2.5));
+    this.alpha = 0;
+    this.scatter = 0;
+    const dur = rng.float(55, 95);
+    this.pos.copy(c0);
+    this.seg(3, (k, t) => {
+      this.alpha = k;
+      this.pos.copy(c0).addScaledVector(drift, t);
+    }, 'appear');
+    this.seg(dur, (k, t) => this.pos.copy(c0).addScaledVector(drift, t), 'dance');
+    const scatter = rng.chance(0.55);
+    this.seg(scatter ? 4 : 2.5, (k, t) => {
+      this.pos.copy(c0).addScaledVector(drift, t);
+      if (scatter) this.scatter = E.inCubic(k);
+      this.alpha = scatter ? 1 - E.inCubic(k) : 1 - k;
+    }, scatter ? 'scatter' : 'fade');
+    this.scatterDirs = this.orbits.map(() => V(rng.float(-1, 1), rng.float(-0.2, 1), rng.float(-1, 1)).normalize());
+  }
+
+  animate(dt) {
+    const L = this.model.lights;
+    for (let i = 0; i < L.length; i++) {
+      const o = this.orbits[i];
+      // Every so often a light reverses, and now and then one darts out.
+      o.flip -= dt;
+      if (o.flip <= 0) {
+        o.flip = this.rng.float(6, 20);
+        if (this.rng.chance(0.6)) o.dir = -o.dir;
+        else o.zip = 1;
+      }
+      o.zip = Math.max(0, o.zip - dt * 0.6);
+      o.ph += o.w * o.dir * dt * (1 + o.zip * 4);
+      const rr = o.r * (1 + Math.sin(o.zip * Math.PI) * 1.6);
+      const p = L[i].obj.position;
+      p.set(Math.cos(o.ph) * rr, o.y + Math.sin(this.t * 0.7 + i) * 3, Math.sin(o.ph) * rr);
+      if (this.scatter > 0) p.addScaledVector(this.scatterDirs[i], this.scatter * 600);
+    }
+  }
+
+  lightLevel(L, i) {
+    if (i >= this.count) return 0;
+    const n = this.mgr.world.sky.night;
+    const twinkle = 0.85 + 0.15 * Math.sin(this.t * 9 + i * 2.1);
+    return twinkle * (0.12 + n * 1.1);
+  }
+}
+
 export class UFOManager {
   constructor(game) {
     this.game = game;
@@ -324,14 +510,18 @@ export class UFOManager {
     this.camera = game.camera;
     this.current = null;
     this.lastAbs = null;
-    this.models = { saucer: buildSaucer(), cigar: buildCigar(), triangle: buildTriangle() };
+    this.models = { saucer: buildSaucer(), cigar: buildCigar(), triangle: buildTriangle(), sphere: buildSphere(), vee: buildV(), dots: buildDots(5) };
+    // Live reflections for the chrome sphere.
+    this.cubeRT = new THREE.WebGLCubeRenderTarget(96);
+    this.cubeCam = new THREE.CubeCamera(1, 1500, this.cubeRT);
+    this.models.sphere.materials[0].envMap = this.cubeRT.texture;
     for (const m of Object.values(this.models)) {
       m.group.visible = false;
       game.scene.add(m.group);
     }
     const g = this.world.glows;
     this.glowPool = [];
-    for (let i = 0; i < 12; i++) this.glowPool.push(g.add(V(0, -500, 0), '#ffffff', 1));
+    for (let i = 0; i < 16; i++) this.glowPool.push(g.add(V(0, -500, 0), '#ffffff', 1));
 
     // Register each type as a photo subject. They only count while flying.
     for (const [type, info] of Object.entries(UFO_TYPES)) {
@@ -363,9 +553,24 @@ export class UFOManager {
   _pickType(hour, rng) {
     const night = hour >= 20.6 || hour < 5;
     const twilight = !night && (hour >= 18 || hour < 7);
-    if (night) return rng.chance(0.42) ? 'triangle' : 'saucer';
-    if (twilight) return rng.chance(0.5) ? 'cigar' : 'saucer';
-    return rng.chance(0.75) ? 'cigar' : 'saucer';
+    const odds = ODDS[night ? 'night' : twilight ? 'twilight' : 'day'];
+    const total = Object.values(odds).reduce((a, b) => a + b, 0);
+    let r = rng.float(0, total);
+    for (const [type, w] of Object.entries(odds)) {
+      r -= w;
+      if (r <= 0) return type;
+    }
+    return 'saucer';
+  }
+
+  // Re-render the sphere's surroundings into its reflection cube map.
+  captureEnv(craft) {
+    const g = craft.model.group;
+    const vis = g.visible;
+    g.visible = false;
+    this.cubeCam.position.copy(craft.pos);
+    this.cubeCam.update(this.game.renderer, this.game.scene);
+    g.visible = vis;
   }
 
   _schedule(abs, min, max) {
@@ -387,7 +592,7 @@ export class UFOManager {
     const rng = new RNG(Math.floor(Math.random() * 1e9));
     const night = this.world.sky.night > 0.5;
     const model = this.models[type];
-    const C = { saucer: Saucer, cigar: Cigar, triangle: Triangle }[type];
+    const C = { saucer: Saucer, cigar: Cigar, triangle: Triangle, sphere: Sphere, vee: Vee, dots: Dots }[type];
     this.current = new C(this, model, rng, { night, near });
     S.ufo.n += 1;
     this.current.sightingId = `${type}-d${S.day}-${S.ufo.n}`;
@@ -402,7 +607,14 @@ export class UFOManager {
       msg = night ? 'Every dog on the block starts barking at once.' : 'The birds go quiet. Your ears pop.';
       if (night) bus.emit('sfx', 'dogs');
     } else if (c.type === 'cigar') msg = 'Something high up catches the sun.';
-    else msg = 'A low hum, more felt than heard. The crickets have stopped.';
+    else if (c.type === 'triangle') msg = 'A low hum, more felt than heard. The crickets have stopped.';
+    else if (c.type === 'sphere') msg = night ? 'The crickets stop. All of them, at once.' : 'Something is hanging perfectly still in the sky.';
+    else if (c.type === 'vee') msg = 'A row of lights is moving across the sky. Not a sound.';
+    else {
+      // Dots are easy to mistake for stars; only sometimes does anyone notice.
+      if (Math.random() < 0.5) return;
+      msg = 'A few of the stars seem to be... moving?';
+    }
     bus.emit('toast', msg);
   }
 
@@ -455,9 +667,9 @@ export class UFOManager {
   // Lamps flicker under it; saucers warble, triangles hum.
   _effects(c) {
     const d = c.pos.distanceTo(this.camera.position);
-    const loud = c.type !== 'cigar';
-    this.world.disturb = loud && c.pos.y < 140 ? { x: c.pos.x, z: c.pos.z, r: 70 } : null;
-    const level = loud ? clamp(1 - d / (c.type === 'triangle' ? 420 : 320), 0, 1) * c.alpha : 0;
-    bus.emit('ufoAudio', { kind: c.type, level, hush: c.type !== 'cigar' });
+    const fx = FX[c.type];
+    this.world.disturb = fx.disturb && c.pos.y < 140 ? { x: c.pos.x, z: c.pos.z, r: 70 } : null;
+    const near = clamp(1 - d / (c.type === 'triangle' ? 420 : 320), 0, 1) * c.alpha;
+    bus.emit('ufoAudio', { kind: fx.audio, level: fx.audio ? near : 0, hush: fx.hush && near > 0.05 });
   }
 }

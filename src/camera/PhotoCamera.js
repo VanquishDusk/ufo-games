@@ -43,7 +43,7 @@ export class PhotoCamera {
     this._prevSway = new THREE.Vector2();
     this.lastShutterEstimate = 1 / 60;
 
-    this.photoCam = new THREE.PerspectiveCamera(PHOTO_FOV, 4 / 3, 0.1, 1600);
+    this.photoCam = new THREE.PerspectiveCamera(PHOTO_FOV, 4 / 3, 0.2, 1600);
     this.photoCam.rotation.order = 'YXZ';
 
     this.flash = new THREE.PointLight('#f4f6ff', 0, 20, 2);
@@ -297,7 +297,7 @@ export class PhotoCamera {
     pc.quaternion.setFromRotationMatrix(cam.matrixWorld);
     pc.fov = this.photoFov;
     pc.aspect = 4 / 3;
-    pc.near = 0.1;
+    pc.near = 0.2;
     pc.far = cam.far;
     pc.updateProjectionMatrix();
     pc.updateMatrixWorld();

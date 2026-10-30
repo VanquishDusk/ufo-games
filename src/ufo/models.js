@@ -88,3 +88,77 @@ export function buildTriangle() {
   lights.push(marker(body, 0, -1.4, 0, '#ff2a1a', 3.2, 'center'));
   return { group, body, lights, materials: [black] };
 }
+
+// Chrome orb with helical grooves. Its envMap is a live cube capture of the
+// town (set up by the manager), so it mirrors whatever is around it.
+export function buildSphere() {
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  group.add(body);
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 128;
+  const g = c.getContext('2d');
+  g.fillStyle = '#ffffff';
+  g.fillRect(0, 0, 128, 128);
+  // Diagonal lines become spiral bands when wrapped around a sphere.
+  for (let i = -8; i < 16; i++) {
+    const x = i * 16;
+    g.strokeStyle = '#3a3c42';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(x, 0);
+    g.lineTo(x + 128, 128);
+    g.stroke();
+    g.strokeStyle = '#ffffff';
+    g.lineWidth = 1;
+    g.beginPath();
+    g.moveTo(x + 3, 0);
+    g.lineTo(x + 131, 128);
+    g.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(2, 1);
+  const chrome = psx(
+    new THREE.MeshPhongMaterial({ color: '#ffffff', map: tex, specular: '#ffffff', shininess: 140, combine: THREE.MixOperation, reflectivity: 0.82, fog: false }),
+  );
+  body.add(new THREE.Mesh(new THREE.SphereGeometry(2.6, 36, 24), chrome));
+  const lights = [marker(body, 0, 0, 0, '#ffffff', 2.5, 'glint'), marker(body, 0, 0, 0, '#cfe8ff', 9, 'aura')];
+  return { group, body, lights, materials: [chrome] };
+}
+
+// "Boomerang": a huge dark chevron with lights strung along its arms.
+export function buildV() {
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  group.add(body);
+  const dark = psx(new THREE.MeshPhongMaterial({ color: '#121318', specular: '#2a2a32', shininess: 30, fog: false }));
+  const len = 56;
+  const half = THREE.MathUtils.degToRad(26);
+  const lights = [marker(body, 0, -1.6, 0, '#fff2d8', 5.5, 'light')];
+  for (const side of [-1, 1]) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(7, 2.4, len).translate(0, 0, len / 2), dark);
+    arm.rotation.y = side * half;
+    body.add(arm);
+    for (const f of [0.5, 0.96]) {
+      const x = Math.sin(side * half) * len * f;
+      const z = Math.cos(side * half) * len * f;
+      lights.push(marker(body, x, -1.6, z, '#fff2d8', 5.5, 'light'));
+    }
+  }
+  for (let i = 0; i < 5; i++) lights.push(marker(body, lights[i].obj.position.x, -2.6, lights[i].obj.position.z, '#ffd9a0', 15, 'halo'));
+  // The apex leads: arms trail toward +z, so the craft flies along -z.
+  return { group, body, lights, materials: [dark] };
+}
+
+// A loose cluster of white points that circle one another. No hull at all.
+export function buildDots(n = 5) {
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  group.add(body);
+  const lights = [];
+  for (let i = 0; i < n; i++) lights.push(marker(body, 0, 0, 0, '#f6f8ff', 3.2, 'dot'));
+  return { group, body, lights, materials: [] };
+}

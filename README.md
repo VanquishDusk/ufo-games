@@ -27,7 +27,7 @@ save. The game appears at `https://<user>.github.io/ufo-games/` a minute or two 
 `package.json`, bump the version in the import map too.)
 
 Add `?debug` (or `#debug`) to the URL for dev keys: `[` / `]` change the hour, `\` toggles
-30x time, **1 / 2 / 3 spawn a saucer / cigar / triangle nearby**, F9 spawns a glowing test
+30x time, **1–6 spawn a saucer / cigar / triangle / sphere / V / dots nearby**, F9 spawns a glowing test
 orb, and F10 adds $500.
 
 ## Controls
@@ -65,7 +65,7 @@ and moving clouds. Families turn lights on and off on their own schedules, TVs f
 through windows, porch lights and jack-o'-lanterns come on, street lamps warm up (one of them
 flickers), and the nearest lamps actually light the scene around you.
 
-**The look.** The world renders to a ~300-line buffer and is upscaled with nearest filtering,
+**The look.** The world renders to a ~360-line buffer and is upscaled with nearest filtering,
 4x4 ordered dithering and a 5-bit-per-channel palette. Vertices snap to a coarse grid for that
 PS1 wobble, and every texture is a tiny procedural canvas. Resolution and wobble are adjustable
 in Settings.
@@ -120,9 +120,12 @@ barking, crickets go silent, street lamps flicker underneath, and there's a hum.
 | **Saucer** (silver disc, dome, ports) | Any time, mostly night | Glides in and decelerates to a hover over the corn, the west field, the water tower or the park. Wobbles, slowly spins, banks into motion. Snaps 40–100 m sideways in about half a second, then hovers again (1–3 times). At night it sometimes sinks to ~20 m over the field with its underside lit. Leaves with a violent acceleration. Rim lights chase at night. | $150 |
 | **Cigar** (metallic tube) | Mostly day and dusk | High (160–240 m), slow straight drift, lazy tilting and yawing. Flashes a sun glint when its angle lines up with you and the sun. Stops dead for a while, drifts on, then usually winks out (sometimes climbs away). Silent. | $130 |
 | **Black triangle** (42 m, matte black) | Night only | Slow, silent cruise over town at 75–125 m with a low hum you feel. Stops, rotates in place, carries on along a new heading, sometimes leaving in a hurry. White corner lights, pulsing red center. | $210 |
+| **Sphere** (chrome orb, spiral grooves) | Rare; mostly day | Drops straight down out of the sky and stops dead: no bob, barely any drift, slowly turning. Its surface is a live reflection of the town and sky around it. Glides on a smooth curve to a new spot (once or twice), then shoots straight up and is gone. | $320 |
+| **V / boomerang** (huge dark chevron) | Dusk and night | Glides apex-first in a dead-straight line at constant speed, completely silent, five steady lights along its arms. On its way out the lights go dark one by one, and then it's gone. | $230 |
+| **Circling lights** (3–5 white dots) | Common; dusk and night | Very high. The dots circle one another, reverse direction, and one sometimes darts out of the group and back. The cluster drifts, then scatters in all directions or fades. Easy to mistake for stars, and you need zoom to get more than specks. | $70 |
 
-Buyers have tastes: the Probe pays extra for saucers, Dr. Vos for triangles and cigars, and
-KCHV for daylight cigars. Repeat shots of the same sighting sell for less. A craft that's moving
+Buyers have tastes: the Probe pays extra for saucers and Vs, Dr. Vos for spheres, triangles and
+cigars, and KCHV for spheres and daylight cigars. Nobody pays much for dots. Repeat shots of the same sighting sell for less. A craft that's moving
 fast across the frame comes out smeared ("Subject moving"), so the saucer's darts and the
 cigar's exit are hard to catch.
 
