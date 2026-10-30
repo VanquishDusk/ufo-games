@@ -16,6 +16,7 @@ import { bus } from '../core/events.js';
 import { RNG, clamp, noise1 } from '../core/rng.js';
 import { buildSaucer, buildCigar, buildTriangle, buildSphere, buildV, buildDots, build1947, buildPhoenix, PHOENIX_LIGHTS, buildOrbs, buildStar, buildTicTac, buildRing, buildCloudship, buildBeamCraft } from './models.js';
 import { hash } from '../core/rng.js';
+import { LURES } from '../game/lures.js';
 import { ZONES, LANDMARKS } from '../world/layout.js';
 
 export const UFO_TYPES = {
@@ -1157,69 +1158,98 @@ export class UFOManager {
     return false;
   }
 
-  // Player pressed L.
-  useLure() {
+  // Can this lure be used right now, right here? Returns a reason if not.
+  lureBlocker(id) {
+    const S = this.state;
+    const L = LURES[id];
+    if (!L || !(S.lures[id] > 0)) return "You don't have one.";
+    if (S.lure) return 'A lure is already out. Wait and watch.';
+    const sky = this.world.sky;
+    if (L.when === 'night' && sky.night < 0.5) return 'Needs full dark.';
+    if (L.when === 'day' && sky.sunDir.y < 0.08) return 'Needs the sun up.';
+    const p = this.player.pos;
+    if (L.place === 'corn' && !this._inCorn(p.x, p.z)) return 'Has to be done inside the corn field.';
+    if (L.place === 'open' && !this._isOpen(p.x, p.z)) return 'Find somewhere open: the corn, the field west of Oak St, or the park.';
+    return null;
+  }
+
+  _inCorn(x, z) {
+    const r = ZONES.corn;
+    return x > r[0] && x < r[2] && z > r[1] && z < r[3];
+  }
+
+  useLure(id) {
     const S = this.state;
     this._ensureState();
-    if (S.lure) {
-      bus.emit('toast', S.lure.kind === 'lure_flares' ? 'The flares are still burning. Wait and watch.' : "You've already signalled. Wait and watch.");
-      return;
+    const why = this.lureBlocker(id);
+    if (why) {
+      bus.emit('toast', why);
+      return false;
     }
-    const sky = this.world.sky;
-    const has = (id) => (S.lures[id] || 0) > 0;
-    let kind = null;
-    if (sky.night > 0.5 && has('lure_flares')) kind = 'lure_flares';
-    else if (sky.sunDir.y > 0.08 && has('lure_mirror')) kind = 'lure_mirror';
-    if (!kind) {
-      if (!has('lure_flares') && !has('lure_mirror')) bus.emit('toast', "You don't have any lures. Skywatcher Supply sells them.");
-      else if (has('lure_mirror') && !has('lure_flares')) bus.emit('toast', 'A signal mirror needs the sun high enough to catch.');
-      else if (has('lure_flares') && !has('lure_mirror')) bus.emit('toast', 'Flares are for full dark. Wait for night.');
-      else bus.emit('toast', 'Mirror needs sun, flares need full dark. Not now.');
-      return;
-    }
+    const L = LURES[id];
+    S.lures[id] -= 1;
     const p = this.player.pos;
-    if (!this._isOpen(p.x, p.z)) {
-      bus.emit('toast', 'Find somewhere open: the corn field, the field west of Oak St, or the park.');
-      return;
-    }
-    S.lures[kind] -= 1;
     const abs = S.day * 24 + S.hour;
-    S.lure = { kind, x: p.x, z: p.z, rollAt: abs + 0.15 + Math.random() * 0.75, until: abs + 1.5, rolled: false, success: false };
-    if (kind === 'lure_flares') {
-      bus.emit('sfx', 'flare');
-      bus.emit('toast', 'You plant three road flares in a triangle and step back. Now you wait.');
-    } else {
-      bus.emit('sfx', 'click');
-      bus.emit('toast', 'You flash the signal mirror at the sky, again and again. Now you wait.');
+    S.lure = { kind: id, x: p.x, z: p.z, t0: abs, rollAt: abs + 0.15 + Math.random() * 0.75, until: abs + 1.5, rolled: false, success: false };
+    bus.emit('sfx', L.visual === 'flares' ? 'flare' : L.visual === 'tape' ? 'modem' : 'click');
+    bus.emit('toast', `${L.use} Now you wait.`);
+    return true;
+  }
+
+  // What the lure looks like while you wait (uses three reserved glows).
+  _lureVisual(L, abs) {
+    const g = this.world.glows;
+    const vis = LURES[L.kind]?.visual;
+    const t = (abs - L.t0) * 60; // real seconds since use
+    const set = (k, x, y, z, color, size, level) => {
+      const i = this.flareGlows[k];
+      g.restyle(i, color, size);
+      g.move(i, _v.set(x, y, z));
+      g.set(i, level);
+    };
+    for (let k = 0; k < 3; k++) g.set(this.flareGlows[k], 0);
+    if (vis === 'flares') {
+      for (let k = 0; k < 3; k++) {
+        const a = (k / 3) * Math.PI * 2;
+        set(k, L.x + Math.cos(a) * 2.5, 0.35, L.z + Math.sin(a) * 2.5, '#ff3a1a', 1.6, 0.9 + Math.random() * 0.5);
+      }
+    } else if (vis === 'strobe') {
+      set(0, L.x, 0.4, L.z, '#ffffff', 3, t % 1 < 0.08 ? 3 : 0);
+    } else if (vis === 'lantern') {
+      set(0, L.x + t * 0.3, 2 + Math.min(t, 80) * 1.4, L.z + t * 0.2, '#ffa040', 1.4, (0.9 + Math.random() * 0.3) * (t < 80 ? 1 : 0));
+    } else if (vis === 'glint') {
+      set(0, L.x + 1, 0.3, L.z, '#ffffff', 1.2, this.world.sky.daylight * (0.6 + 0.6 * Math.max(0, Math.sin(t * 4))));
+    } else if (vis === 'kite') {
+      set(0, L.x + Math.sin(t * 0.4) * 4, 32 + Math.sin(t * 0.7) * 3, L.z + 10, '#ffffff', 1.4, this.world.sky.daylight * (0.4 + 0.8 * Math.max(0, Math.sin(t * 2.3)) ** 6));
+    } else if (vis === 'stakes') {
+      for (let k = 0; k < 3; k++) {
+        const a = (k / 3) * Math.PI * 2;
+        set(k, L.x + Math.cos(a) * 6, 0.6, L.z + Math.sin(a) * 6, '#f0f4ff', 0.6, 0.6);
+      }
+    } else if (vis === 'balloon') {
+      set(0, L.x, 2 + Math.min(t, 120) * 3, L.z, '#ffffff', 2.5, (0.3 + this.world.sky.daylight * 0.8) * (t < 120 ? 1 : 0));
     }
   }
 
   _updateLure(abs) {
     const S = this.state;
     const L = S.lure;
-    const g = this.world.glows;
     if (!L) {
-      for (const i of this.flareGlows) g.set(i, 0);
+      for (const i of this.flareGlows) this.world.glows.set(i, 0);
       return;
     }
-    if (L.kind === 'lure_flares') {
-      // Three sputtering red flares on the ground.
-      this.flareGlows.forEach((i, k) => {
-        const a = (k / 3) * Math.PI * 2;
-        g.move(i, _v.set(L.x + Math.cos(a) * 2.5, 0.35, L.z + Math.sin(a) * 2.5));
-        g.set(i, 0.9 + Math.random() * 0.5);
-      });
-    }
+    const def = LURES[L.kind];
+    this._lureVisual(L, abs);
     if (!L.rolled && abs >= L.rollAt) {
       L.rolled = true;
-      L.success = Math.random() < LURE_SUCCESS;
+      L.success = Math.random() < (def?.odds ?? LURE_SUCCESS);
       if (L.success) {
         if (this.current) this.end();
-        this.spawn(L.kind === 'lure_flares' ? 'phoenix' : 'k1947', false, V(L.x, 0, L.z));
+        this.spawn(def.target, true, V(L.x, 0, L.z));
       }
     }
     if (abs >= L.until) {
-      if (!L.success) bus.emit('toast', L.kind === 'lure_flares' ? 'The flares sputter out. Nothing came tonight.' : 'Your arm is tired. Nothing answered.');
+      if (!L.success && def) bus.emit('toast', def.fail);
       S.lure = null;
     }
   }
@@ -1267,7 +1297,7 @@ export class UFOManager {
     const grp = new THREE.Group();
     const flat = (geo, x, z) => {
       const m = new THREE.Mesh(geo.rotateX(-Math.PI / 2), mat);
-      m.position.set(x, 0.08, z);
+      m.position.set(x, 0.12, z);
       grp.add(m);
     };
     flat(new THREE.CircleGeometry(R, 40), C.x, C.z);

@@ -27,7 +27,7 @@ save. The game appears at `https://<user>.github.io/ufo-games/` a minute or two 
 `package.json`, bump the version in the import map too.)
 
 Add `?debug` (or `#debug`) to the URL for dev keys: `[` / `]` change the hour, `\` toggles
-30x time, **1–8 spawn a saucer / cigar / triangle / sphere / V / dots / '47 / Phoenix nearby, N cycles through every type**, F8 gives one of each lure, F9 spawns a glowing test
+30x time, **1–8 spawn a saucer / cigar / triangle / sphere / V / dots / '47 / Phoenix nearby, N cycles through every type**, F8 gives one of every lure, F9 spawns a glowing test
 orb, and F10 adds $500.
 
 ## Controls
@@ -43,7 +43,7 @@ orb, and F10 adds $500.
 | G | Flash mode: auto, on, off |
 | R | Swap film roll (cycles film types, wastes unused frames) |
 | F / B / T | Flashlight / binoculars / tripod (once you own them) |
-| L | Use a lure (out in the open) |
+| L | Use a lure: pick one from the list; each needs the right time and place |
 | E | Interact (doors, store, payphone, packages) |
 | Tab or P | Photo album |
 | H | Toggle hints |
@@ -143,15 +143,34 @@ epic or legend. Odds depend on the time of day.
 
 Two legendary craft exist. Each scheduled sighting has a 1.5% chance of being one (from day 2
 on): the Phoenix Lights at night, the '47 Visitor by day. That works out to roughly one a
-week of game time. The reliable way is a **lure**: buy one from the Skywatcher catalog, go
-somewhere open (the corn, the field west of Oak St, or the park) and press **L**. There's a 60%
-chance the legend turns up within the next game hour or so. Lenny's email on day 3 explains it
-all. The first legend photo unlocks **M. Gray**, who buys only legends, at 2.5x.
+week of game time. The reliable way is a **lure** (see below), which gives a 60% chance the
+legend turns up within the next game hour or so. Lenny's email on day 3 explains it all. The
+first legend photo unlocks **M. Gray**, who buys only legends, at 2.5x.
 
 | Legend | When / lure | How it moves | Base value |
 | --- | --- | --- | --- |
 | **The '47 Visitor** (flat heel-shaped wing, small fin underneath) | Day. Signal mirror, $60 | Streaks in from the horizon, flies 2–3 fast, wide circles overhead while fluttering and dipping like a skipped stone and flashing in the sun, then leaves in a straight line at absurd speed. Fast enough that you need to pan with it for a sharp shot. | $1200 |
 | **The Phoenix Lights** (seven amber lights on an enormous, nearly invisible V) | Night. Road flares, $90 | Drifts slowly, almost straight overhead, blotting out stars. Moves off toward the horizon, its lights settle into a hanging row, and then they go out one by one, left to right. | $1500 |
+
+### Lures
+
+Lures are one-use items from the Skywatcher catalog on your PC (delivered overnight). Press **L**
+somewhere open (the corn, the field west of Oak St, or the park), pick a lure, and wait: if it
+works, its craft shows up nearby within about an hour of game time. Only one lure can be out at
+a time, and the list tells you why a lure can't be used yet (wrong time of day, wrong place).
+They're defined in `src/game/lures.js`.
+
+| Lure | Price | Calls | When / where | Odds |
+| --- | --- | --- | --- | --- |
+| Paper sky lanterns | $20 | Orange orbs | Night, open | 85% |
+| "Contact" cassette tape | $25 | Circling lights | Night, open | 85% |
+| Chrome hubcap | $55 | Metallic sphere | Day, open | 70% |
+| Aircraft strobe beacon | $75 | Ring of lights | Night, open | 70% |
+| Radar reflector kite | $90 | Tic Tac | Day, open | 70% |
+| Signal mirror | $60 | The '47 Visitor (legend) | Day, open | 60% |
+| Road flares (3-pack) | $90 | The Phoenix Lights (legend) | Night, open | 60% |
+| Surveyor stakes & twine | $160 | The Harvester | Night, **in the corn** | 55% |
+| Surplus weather balloon | $180 | The Cloud Ship | Any time, open | 55% |
 
 Photo grading is pan-aware: tracking a fast mover with the camera cancels out its motion blur.
 

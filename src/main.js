@@ -20,6 +20,7 @@ import { UFOManager } from './ufo/UFOManager.js';
 import { newGameState, loadState, saveState, clearState, loadSettings, saveSettings } from './game/state.js';
 import { appraise, completeSale } from './game/economy.js';
 import { itemById, FILM } from './game/items.js';
+import { LURES } from './game/lures.js';
 import { formatClock, GAME_MINUTES_PER_SECOND } from './game/clock.js';
 
 const RES = { crunchy: 270, retro: 360, sharp: 540 };
@@ -52,7 +53,7 @@ class Game {
     this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: false, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(1);
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.2, 1500);
+    this.camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.3, 1500);
     this.scene.add(this.camera);
     this.pipeline = new RetroPipeline(this.renderer);
     this.input = new Input(this.canvas);
@@ -446,8 +447,7 @@ class Game {
       this.hud.toast(`[debug] ${all[this._dbgType]} spawned nearby.`);
     }
     if (input.keysPressed.has('F8')) {
-      this.applyItem('lure_mirror');
-      this.applyItem('lure_flares');
+      for (const id of Object.keys(LURES)) this.applyItem(id);
       this.hud.toast('[debug] +1 mirror, +1 flares.');
     }
     for (const [code, type] of [['Digit1', 'saucer'], ['Digit2', 'cigar'], ['Digit3', 'triangle'], ['Digit4', 'sphere'], ['Digit5', 'vee'], ['Digit6', 'dots'], ['Digit7', 'k1947'], ['Digit8', 'phoenix']]) {
@@ -488,7 +488,12 @@ class Game {
       this.advanceHours((dt * GAME_MINUTES_PER_SECOND * this.timeScale) / 60);
       this._debug(input);
       this.ufos.update(dt);
-      if (input.pressed('lure')) this.ufos.useLure();
+      if (input.pressed('lure')) {
+        const owned = Object.keys(LURES).some((id) => S.lures[id] > 0);
+        if (S.lure) bus.emit('toast', 'A lure is already out. Wait and watch.');
+        else if (!owned) bus.emit('toast', 'No lures. The Skywatcher catalog on your PC sells them.');
+        else this.openMenu('lures');
+      }
       const mods = this.photoCam.update(dt, input);
       this.player.update(dt, input, mods);
 

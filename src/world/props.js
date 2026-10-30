@@ -62,7 +62,7 @@ export function buildStreets(ctx) {
         const mid = (a0 + a1) / 2;
         let d = Math.abs(((mid - entry + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
         if (d < gap) continue;
-        const p = (a, rr) => V3(c.x + Math.cos(a) * rr, 0.2, c.z + Math.sin(a) * rr);
+        const p = (a, rr) => V3(c.x + Math.cos(a) * rr, 0.23, c.z + Math.sin(a) * rr);
         const u = (v) => [v.x / 2, -v.z / 2];
         const i0 = p(a0, CUL_R),
           i1 = p(a1, CUL_R),
@@ -436,8 +436,8 @@ export function buildPark(ctx) {
   const rng = new RNG(311);
 
   // Paths: entrance from Maple, loop around the gazebo.
-  conc.box(I, -4.25, 0.07, (-6.5 + cz + 16) / 2, 2.2, 0.24, -6.5 - (cz + 16) + 0.1, pathCol, { ts: 2, skip: 'b' });
-  conc.disc(cx, cz, 15, 17, 0.2, pathCol, 32, 2);
+  conc.box(I, -4.25, 0.05, (-6.5 + cz + 16) / 2, 2.2, 0.24, -6.5 - (cz + 16) + 0.1, pathCol, { ts: 2, skip: 'b' });
+  conc.disc(cx, cz, 15, 17, 0.23, pathCol, 32, 2);
   conc.disc(cx, cz, 0, 4.6, 0.2, new THREE.Color('#a8a296'), 12, 2);
 
   // Gazebo.
@@ -457,7 +457,7 @@ export function buildPark(ctx) {
   // Playground.
   const px = x0 + 14;
   const pz = z1 - 18;
-  B.get('paint').disc(px, pz, 0, 9, 0.04, new THREE.Color('#9a7a50'), 20);
+  B.get('paint').disc(px, pz, 0, 9, 0.06, new THREE.Color('#9a7a50'), 20);
   for (const sx of [-2.4, 2.4]) {
     for (const sz of [-0.9, 0.9]) plain.box(I, px + sx, 1.3, pz + sz, 0.1, 2.6, 0.1, '#b83a2a');
     colliders.addBox(px + sx, pz, 0.1, 0.9, 0, 2.6);
@@ -490,7 +490,7 @@ export function buildPark(ctx) {
   // Ball field + backstop in the back corner.
   const bx = x1 - 16;
   const bz = z0 + 14;
-  B.get('paint').disc(bx, bz, 0, 13, 0.04, new THREE.Color('#a8845a'), 24);
+  B.get('paint').disc(bx, bz, 0, 13, 0.06, new THREE.Color('#a8845a'), 24);
   for (const [ox, oz] of [
     [0, 0],
     [6, 6],
@@ -637,7 +637,7 @@ export function buildStore(ctx) {
   plain.box(I, gx, 5.1, gz, 22, 0.6, 11, '#f4f4f0');
   plain.box(I, gx, 5.1, gz + 5.52, 22.02, 0.3, 0.02, '#b8281c');
   plain.box(I, gx, 5.1, gz - 5.52, 22.02, 0.3, 0.02, '#b8281c');
-  const panel = windows.add(mul(mat(gx, 4.79, gz), new THREE.Matrix4().makeRotationX(Math.PI / 2)).multiply(mat(0, 0, 0, 0, 18, 8, 1)), '#9aa0a6');
+  const panel = windows.add(mul(mat(gx, 4.74, gz), new THREE.Matrix4().makeRotationX(Math.PI / 2)).multiply(mat(0, 0, 0, 0, 18, 8, 1)), '#9aa0a6');
   storeWin.push(panel);
   for (const ox of [-4.5, 4.5]) {
     plain.box(I, gx + ox, 0.12, gz, 1.2, 0.24, 6.5, '#c8c4b8');
@@ -779,7 +779,7 @@ export function buildCorn(ctx) {
   im.computeBoundingSphere();
   scene.add(im);
   // Dirt between rows.
-  ctx.batch.get('paint').ground(x0, z0, x1, z1, 0.04, new THREE.Color('#7a6a4a'));
+  ctx.batch.get('paint').ground(x0, z0, x1, z1, 0.06, new THREE.Color('#7a6a4a'));
   // Kept so stalks can be flattened (crop circles) and stood back up.
   im.userData.spots = spots;
   im.userData.original = im.instanceMatrix.array.slice();

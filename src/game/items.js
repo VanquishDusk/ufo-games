@@ -1,3 +1,5 @@
+import { LURES } from './lures.js';
+
 // Gear, film and the two places to buy them: the Qwik Stop (instant) and the
 // Skywatcher Supply Co. mail-order catalog (arrives on the porch next morning).
 
@@ -31,10 +33,10 @@ export const ITEMS = [
   { id: 'binoculars', name: '7x50 binoculars', desc: 'Scan the sky without wasting film. Toggle with B.', price: 45, kind: 'gear', where: ['mail'] },
   { id: 'tripod', name: 'Aluminum tripod', desc: 'Plant it with T. Zero shake, long exposures.', price: 70, kind: 'gear', where: ['mail'] },
   { id: 'stabilizer', name: 'Steady-Grip handle', desc: 'Cuts handheld shake by 40%.', price: 95, kind: 'gear', where: ['mail'] },
-  // Lures (consumable, one use each)
-  { id: 'lure_mirror', name: 'Signal mirror', desc: "Flash it at a sunny sky out in the open (L). They say the '47 Visitor answers.", price: 60, kind: 'lure', where: ['mail'] },
-  { id: 'lure_flares', name: 'Road flares (3-pack)', desc: 'Light them somewhere open after dark (L). They say the Phoenix Lights come to them.', price: 90, kind: 'lure', where: ['mail'] },
   { id: 'flash_pro', name: 'Pro flash unit', desc: 'Flash reaches 20m instead of a few feet.', price: 120, kind: 'gear', where: ['mail'] },
 ];
+
+// Lures (consumable, one use each) come from the lure table.
+for (const [id, l] of Object.entries(LURES)) ITEMS.push({ id, name: l.name, desc: `${l.desc} (L to use)`, price: l.price, kind: 'lure', where: ['mail'] });
 
 export const itemById = (id) => ITEMS.find((i) => i.id === id);

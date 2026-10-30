@@ -159,7 +159,7 @@ export function buildHouse(lot, index, ctx) {
     gableRoof(B, L, gx, gz, gW, gD, gH, 1.3, 0.35, 'x', roofCol, sidingCol);
     const zf = gz + gD / 2;
     plain.box(L, gx, 1.2, zf + 0.015, 5.3, 2.45, 0.03, TRIM, { skip: 'kb' });
-    B.get('garageDoor').quad(L, V3(gx - 2.5, 0.02, zf + 0.04), V3(gx + 2.5, 0.02, zf + 0.04), V3(gx + 2.5, 2.3, zf + 0.04), V3(gx - 2.5, 2.3, zf + 0.04), null, rng.pick(['#efeee8', '#e2d8c4', '#d8d4cc']));
+    B.get('garageDoor').quad(L, V3(gx - 2.5, 0.02, zf + 0.075), V3(gx + 2.5, 0.02, zf + 0.075), V3(gx + 2.5, 2.3, zf + 0.075), V3(gx - 2.5, 2.3, zf + 0.075), null, rng.pick(['#efeee8', '#e2d8c4', '#d8d4cc']));
     colliders.addBox(...worldXZ(L, gx, gz), gW / 2, gD / 2, lot.rot, gH + 1.3);
     // Basketball hoop over the garage.
     if (!isPlayer && rng.chance(0.22)) {
@@ -172,7 +172,7 @@ export function buildHouse(lot, index, ctx) {
   const zfB = bz + D / 2;
   const doorX = bx + (hasGarage ? -gSide * rng.float(0.5, Math.max(0.6, W / 2 - 1.8)) : rng.float(-W / 4, W / 4));
   plain.box(L, doorX, 1.4, zfB + 0.015, 1.3, 2.3, 0.03, TRIM, { skip: 'kb' });
-  B.get('door').quad(L, V3(doorX - 0.5, 0.3, zfB + 0.035), V3(doorX + 0.5, 0.3, zfB + 0.035), V3(doorX + 0.5, 2.4, zfB + 0.035), V3(doorX - 0.5, 2.4, zfB + 0.035), null, doorCol);
+  B.get('door').quad(L, V3(doorX - 0.5, 0.3, zfB + 0.07), V3(doorX + 0.5, 0.3, zfB + 0.07), V3(doorX + 0.5, 2.4, zfB + 0.07), V3(doorX - 0.5, 2.4, zfB + 0.07), null, doorCol);
   conc.box(L, doorX, 0.15, zfB + 0.9, 2.6, 0.3, 1.8, '#b4b0a6', { ts: 2, skip: 'b' });
   if (brickFront) {
     // Brick wainscot, split around the door.
@@ -191,7 +191,7 @@ export function buildHouse(lot, index, ctx) {
   }
   plain.box(L, doorX + 0.85, 2.05, zfB + 0.08, 0.16, 0.26, 0.12, '#2a2a2a');
   house.porchGlow = glows.add(P(L, doorX + 0.85, 2.05, zfB + 0.2), '#ffcf8a', 0.55);
-  house.porchPool = pools.add(mul(L, mat(doorX, 0.31, zfB + 1.2, 0, 3.4, 1, 3.4)), '#ffb463');
+  house.porchPool = pools.add(mul(L, mat(doorX, 0.36, zfB + 1.2, 0, 3.4, 1, 3.4)), '#ffb463');
   house.door = P(L, doorX, 0, zfB + 1.4);
   house.porch = P(L, doorX + 0.7, 0.3, zfB + 0.9);
   house.facing = lot.rot;
@@ -214,7 +214,7 @@ export function buildHouse(lot, index, ctx) {
       plain.box(faceM, -(w / 2 + 0.36), 0, 0.05, 0.4, h + 0.1, 0.05, shutterCol, { skip: 'kb' });
       plain.box(faceM, w / 2 + 0.36, 0, 0.05, 0.4, h + 0.1, 0.05, shutterCol, { skip: 'kb' });
     }
-    const idx = windows.add(mul(faceM, mat(0, 0, 0.065, 0, w, h, 1)), DAY_GLASS);
+    const idx = windows.add(mul(faceM, mat(0, 0, 0.095, 0, w, h, 1)), DAY_GLASS);
     house.windows.push({ idx, r: rng.next(), tv: false });
   };
   const storyY = (s) => 0.3 + 1.45 + s * 2.8;

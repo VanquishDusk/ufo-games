@@ -2,6 +2,7 @@
 // computer (inbox, selling, mail order, stats) and the Qwik Stop counter.
 import { BUYERS, appraise } from '../game/economy.js';
 import { ITEMS, FILM, CAMERAS, itemById } from '../game/items.js';
+import { LURES } from '../game/lures.js';
 import { formatClock, formatDate, stampDate, stampTime } from '../game/clock.js';
 
 // Embedded (iframe) builds can't trigger downloads, so hide "save" there.
@@ -32,7 +33,7 @@ const CONTROLS = [
   ['T', 'Plant / pack tripod'],
   ['E', 'Interact'],
   ['TAB or P', 'Photo album'],
-  ['L', 'Use a lure (out in the open)'],
+  ['L', 'Use a lure (pick one; each needs the right time and place)'],
   ['H', 'Toggle hints'],
   ['ESC', 'Pause'],
 ];
@@ -262,6 +263,10 @@ export class Menus {
         break;
       case 'ok':
         G.closeMenus();
+        break;
+      case 'useLure':
+        G.closeMenus();
+        G.ufos.useLure(v);
         break;
       default:
         break;
@@ -532,6 +537,21 @@ export class Menus {
     return `<div class="panel osd"><h2>QWIK STOP</h2><div class="sub">OPEN 24 HRS &middot; You have ${money(S.money)}</div>
       <p style="opacity:.85">${esc(line)}</p>${rows}
       <div class="menu-list"><button data-a="close">LEAVE</button></div></div>`;
+  }
+
+  r_lures() {
+    const G = this.game;
+    const S = G.state;
+    const WHEN = { day: 'daytime', night: 'after dark', any: 'any time' };
+    const rows = Object.entries(LURES)
+      .filter(([id]) => S.lures[id] > 0)
+      .map(([id, l]) => {
+        const why = G.ufos.lureBlocker(id);
+        return `<button data-a="useLure" data-v="${id}" ${why ? 'disabled' : ''}>${esc(l.name)} x${S.lures[id]}
+          <div style="font-size:16px;opacity:.75">${WHEN[l.when]}, ${l.place === 'corn' ? 'in the corn' : 'out in the open'}${why ? ` &middot; ${esc(why)}` : ' &middot; READY'}</div></button>`;
+      })
+      .join('');
+    return `<div class="panel osd"><h2>USE A LURE</h2><div class="menu-list lures">${rows}</div><div class="menu-list"><button data-a="close">CANCEL</button></div></div>`;
   }
 
   r_dialog() {

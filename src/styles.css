@@ -1073,3 +1073,23 @@ body {
     font-size: 24px;
   }
 }
+.menu-list.lures {
+  max-height: min(66vh, 420px);
+  overflow-y: auto;
+}
+.menu-list.lures button {
+  font-size: 24px;
+  padding: 2px 12px;
+}
+.menu-list button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.menu-list button:disabled:hover {
+  color: var(--osd);
+  background: transparent;
+  text-shadow: 2px 2px 0 var(--osd-shadow);
+}
+.menu-list button:disabled:hover::before {
+  content: none;
+}
