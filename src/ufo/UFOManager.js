@@ -11,19 +11,30 @@
 import * as THREE from 'three';
 import { bus } from '../core/events.js';
 import { RNG, clamp, noise1 } from '../core/rng.js';
-import { buildSaucer, buildCigar, buildTriangle, buildSphere, buildV, buildDots, build1947, buildPhoenix, PHOENIX_LIGHTS } from './models.js';
+import { buildSaucer, buildCigar, buildTriangle, buildSphere, buildV, buildDots, build1947, buildPhoenix, PHOENIX_LIGHTS, buildOrbs, buildStar, buildTicTac, buildRing, buildCloudship, buildBeamCraft } from './models.js';
+import { hash } from '../core/rng.js';
 import { ZONES, LANDMARKS } from '../world/layout.js';
 
 export const UFO_TYPES = {
-  saucer: { label: 'Flying saucer', value: 150, radius: 7.2 },
-  cigar: { label: 'Cigar-shaped craft', value: 130, radius: 11 },
-  triangle: { label: 'Black triangle', value: 210, radius: 20 },
-  sphere: { label: 'Metallic sphere', value: 320, radius: 2.8 },
-  vee: { label: 'V-shaped craft', value: 230, radius: 26 },
-  dots: { label: 'Circling lights', value: 70, radius: 30 },
-  // Legends: almost never seen without a lure.
-  k1947: { label: "The '47 Visitor", value: 1200, radius: 12, legend: true },
-  phoenix: { label: 'The Phoenix Lights', value: 1500, radius: 150, legend: true },
+  // common
+  dots: { label: 'Circling lights', value: 70, radius: 30, tier: 'common' },
+  orbs: { label: 'Orange orbs', value: 55, radius: 25, tier: 'common' },
+  star: { label: 'Moving star', value: 45, radius: 10, tier: 'common' },
+  // uncommon
+  saucer: { label: 'Flying saucer', value: 150, radius: 7.2, tier: 'uncommon' },
+  cigar: { label: 'Cigar-shaped craft', value: 130, radius: 11, tier: 'uncommon' },
+  triangle: { label: 'Black triangle', value: 210, radius: 20, tier: 'uncommon' },
+  vee: { label: 'V-shaped craft', value: 230, radius: 26, tier: 'uncommon' },
+  // rare
+  sphere: { label: 'Metallic sphere', value: 320, radius: 2.8, tier: 'rare' },
+  tictac: { label: 'Tic Tac', value: 380, radius: 7, tier: 'rare' },
+  ring: { label: 'Ring of lights', value: 420, radius: 14, tier: 'rare' },
+  // epic
+  cloudship: { label: 'The Cloud Ship', value: 950, radius: 90, tier: 'epic' },
+  beam: { label: 'The Harvester', value: 850, radius: 12, tier: 'epic' },
+  // legends: almost never seen without a lure
+  k1947: { label: "The '47 Visitor", value: 1200, radius: 12, legend: true, tier: 'legend' },
+  phoenix: { label: 'The Phoenix Lights', value: 1500, radius: 150, legend: true, tier: 'legend' },
 };
 
 // Chance that a scheduled sighting turns out to be a legend instead.
@@ -41,14 +52,20 @@ const FX = {
   dots: { audio: null, hush: false, disturb: false },
   k1947: { audio: null, hush: true, disturb: false },
   phoenix: { audio: null, hush: true, disturb: false },
+  orbs: { audio: null, hush: false, disturb: false },
+  star: { audio: null, hush: false, disturb: false },
+  tictac: { audio: null, hush: true, disturb: false },
+  ring: { audio: 'triangle', hush: true, disturb: true },
+  cloudship: { audio: 'triangle', hush: true, disturb: false },
+  beam: { audio: 'saucer', hush: true, disturb: true },
 };
 
 // Relative odds by time of day. Dots are the everyday sighting, the sphere
 // is the rare prize (and mostly a daylight thing).
 const ODDS = {
-  night: { dots: 38, saucer: 22, triangle: 18, vee: 15, sphere: 3 },
-  twilight: { dots: 20, cigar: 22, saucer: 22, vee: 24, sphere: 8 },
-  day: { cigar: 64, saucer: 22, sphere: 14 },
+  night: { dots: 24, orbs: 21, star: 17, saucer: 12, triangle: 9, vee: 8, ring: 3, sphere: 0.8, cloudship: 0.7, beam: 0.9 },
+  twilight: { orbs: 15, dots: 11, star: 6, cigar: 16, saucer: 15, vee: 13, sphere: 5, tictac: 4, ring: 1.5, cloudship: 1.2 },
+  day: { cigar: 50, saucer: 18, tictac: 10, sphere: 10, cloudship: 1.2 },
 };
 
 // Places a saucer likes to hang around.
@@ -626,6 +643,338 @@ class Phoenix extends Craft {
   }
 }
 
+// COMMON: a few orange orbs rise from behind the trees and drift downwind
+// together in a loose line, flickering like fire, then burn out one by one.
+class Orbs extends Craft {
+  constructor(mgr, model, rng, { near }) {
+    super(mgr, 'orbs', model, rng);
+    const p = mgr.player.pos;
+    const a = rng.float(0, Math.PI * 2);
+    const r = near ? 160 : rng.float(220, 420);
+    const base = V(p.x + Math.cos(a) * r, 18, p.z + Math.sin(a) * r);
+    const wind = V(rng.float(-1, 1), 0, rng.float(-1, 1)).normalize();
+    const speed = rng.float(2.5, 4.5);
+    this.n = rng.int(2, model.lights.length / 2);
+    this.orbs = [];
+    for (let i = 0; i < this.n; i++) {
+      this.orbs.push({
+        off: wind.clone().multiplyScalar(-i * rng.float(8, 16)).add(V(rng.float(-5, 5), rng.float(-4, 4), rng.float(-5, 5))),
+        delay: i * rng.float(2, 5),
+        burnout: rng.float(50, 75) + i * rng.float(2, 6),
+        seed: rng.next() * 100,
+      });
+    }
+    const dur = Math.max(...this.orbs.map((o) => o.burnout)) + 3;
+    this.pos.copy(base);
+    this.seg(dur, (k, t) => {
+      this.pos.copy(base).addScaledVector(wind, speed * t);
+      this.pos.y = 18 + Math.min(t, 75) * 1.6;
+    }, 'drift');
+  }
+
+  animate() {
+    const L = this.model.lights;
+    const half = L.length / 2;
+    this.vis = [];
+    for (let i = 0; i < half; i++) {
+      const o = this.orbs[i];
+      if (!o) {
+        this.vis.push(0);
+        continue;
+      }
+      const lt = this.t - o.delay;
+      const rise = Math.min(0, lt) * 1.6;
+      L[i].obj.position.set(o.off.x + noise1(this.t * 0.3, o.seed) * 3, o.off.y + rise + noise1(this.t * 0.5, o.seed + 1) * 1.5, o.off.z + noise1(this.t * 0.3, o.seed + 2) * 3);
+      L[i + half].obj.position.copy(L[i].obj.position);
+      this.vis.push(clamp(lt / 3, 0, 1) * clamp(1 - (this.t - o.burnout) / 2.5, 0, 1));
+    }
+  }
+
+  lightLevel(L, i) {
+    const half = this.model.lights.length / 2;
+    const k = i % half;
+    const n = this.mgr.world.sky.night;
+    const flick = 0.75 + 0.25 * noise1(this.t * 7 + k * 13, 4) + 0.1 * Math.sin(this.t * 23 + k);
+    return (this.vis?.[k] || 0) * flick * (L.role === 'halo' ? 0.22 : 1.3) * (0.35 + n * 0.8);
+  }
+}
+
+// COMMON: looks like a star crossing the sky... until it stops dead, turns
+// sharply, and accelerates away.
+class Star extends Craft {
+  constructor(mgr, model, rng, { near }) {
+    super(mgr, 'star', model, rng);
+    const p = mgr.player.pos;
+    const a = rng.float(0, Math.PI * 2);
+    const alt = rng.float(380, 600);
+    const start = V(p.x + Math.cos(a) * 900, alt, p.z + Math.sin(a) * 900);
+    const dir = V(-Math.cos(a + rng.float(-0.4, 0.4)), 0, -Math.sin(a + rng.float(-0.4, 0.4))).normalize();
+    const speed = rng.float(55, 75);
+    const cruise = near ? 12 : rng.float(13, 20);
+    this.alpha = 0;
+    this.pos.copy(start);
+    this.seg(cruise, (k, t) => {
+      this.alpha = Math.min(1, t / 1.5);
+      this.pos.copy(start).addScaledVector(dir, speed * cruise * k);
+    }, 'cruise');
+    const stopAt = start.clone().addScaledVector(dir, speed * cruise);
+    const brake = stopAt.clone().addScaledVector(dir, speed * 0.12);
+    this.seg(0.25, (k) => this.pos.lerpVectors(stopAt, brake, E.outCubic(k)), 'stop');
+    this.seg(rng.float(3, 6), () => this.pos.copy(brake), 'hold');
+    const turn = rng.sign() * rng.float(1.2, 1.9);
+    const nd = V(dir.x * Math.cos(turn) - dir.z * Math.sin(turn), rng.float(0, 0.25), dir.x * Math.sin(turn) + dir.z * Math.cos(turn)).normalize();
+    this.seg(5, (k) => {
+      this.pos.copy(brake).addScaledVector(nd, 40 * k + 900 * k * k);
+      this.alpha = clamp(1 - (k - 0.6) / 0.4, 0, 1);
+    }, 'away');
+  }
+
+  lightLevel() {
+    const n = this.mgr.world.sky.night;
+    return (0.85 + 0.15 * Math.sin(this.t * 11)) * (0.15 + n * 1.2);
+  }
+}
+
+// RARE: a white, featureless capsule that doesn't fly so much as glitch:
+// dead still, then a 10-35 m jump in a fraction of a second, over and over.
+class TicTac extends Craft {
+  constructor(mgr, model, rng, { near }) {
+    super(mgr, 'tictac', model, rng);
+    const p = mgr.player.pos;
+    const sites = SITES.filter((q) => Math.hypot(q.x - p.x, q.z - p.z) < 320);
+    const site = near ? { x: p.x + rng.float(-60, 60), z: p.z - 120 } : rng.pick(sites.length ? sites : SITES);
+    let cur = V(site.x + rng.float(-40, 40), rng.float(35, 75), site.z + rng.float(-40, 40));
+    this.yaw = rng.float(0, Math.PI * 2);
+    this.alpha = 0;
+    const p0 = cur.clone();
+    this.seg(0.8, (k) => {
+      this.alpha = k;
+      this.pos.copy(p0);
+    }, 'appear');
+    const jumps = rng.int(10, 18);
+    for (let i = 0; i < jumps; i++) {
+      const hold = cur.clone();
+      const seed = rng.next() * 100;
+      this.seg(rng.float(0.7, 2.4), (k, t) => {
+        // A faint high-frequency tremble while "still".
+        this.pos.set(hold.x + noise1(t * 14, seed) * 0.15, hold.y + noise1(t * 13, seed + 1) * 0.15, hold.z + noise1(t * 15, seed + 2) * 0.15);
+      }, 'hold');
+      const ang = rng.float(0, Math.PI * 2);
+      const len = rng.float(10, 35);
+      const next = V(cur.x + Math.cos(ang) * len, clamp(cur.y + rng.float(-18, 18), 15, 110), cur.z + Math.sin(ang) * len);
+      if (rng.chance(0.12)) next.y = 15; // drops to just over the field
+      const from = cur.clone();
+      const newYaw = rng.float(0, Math.PI * 2);
+      this.seg(rng.float(0.08, 0.16), (k) => {
+        this.pos.lerpVectors(from, next, k);
+        if (k >= 1) this.yaw = newYaw;
+      }, 'jump');
+      cur = next;
+    }
+    const last = cur.clone();
+    const out = V(rng.float(-1, 1), rng.float(0, 0.3), rng.float(-1, 1)).normalize();
+    this.seg(1.2, (k) => {
+      this.pos.copy(last).addScaledVector(out, 3000 * k * k);
+      this.alpha = clamp(1 - (k - 0.7) / 0.3, 0, 1);
+    }, 'gone');
+  }
+
+  animate() {
+    this.group.rotation.set(0, this.yaw, 0);
+    this.model.materials[0].opacity = this.alpha;
+    this.model.group.visible = this.alpha > 0.01;
+  }
+
+  lightLevel() {
+    return 0.12 * this.mgr.world.sky.night;
+  }
+}
+
+// RARE: a wheel of colored lights sinks out of the night sky, spins up,
+// tilts toward you, flashes once, and is gone straight up.
+class Ring extends Craft {
+  constructor(mgr, model, rng, { near }) {
+    super(mgr, 'ring', model, rng);
+    const p = mgr.player.pos;
+    const sites = SITES.filter((q) => Math.hypot(q.x - p.x, q.z - p.z) < 340);
+    const site = near ? { x: p.x + rng.float(-50, 50), z: p.z - 110 } : rng.pick(sites.length ? sites : SITES);
+    const low = V(site.x + rng.float(-30, 30), rng.float(55, 85), site.z + rng.float(-30, 30));
+    const high = low.clone().add(V(0, 520, 0));
+    this.spin = 0.6;
+    this.tilt = 0;
+    this.flash = 0;
+    this.pos.copy(high);
+    this.seg(22, (k) => this.pos.lerpVectors(high, low, E.outCubic(k)), 'descend');
+    const hold = rng.float(25, 35);
+    this.hover(low, hold, 'hover', 0.5, 1);
+    const hs = this.segs[this.segs.length - 1];
+    const base = hs.fn;
+    hs.fn = (k, t) => {
+      base(k, t);
+      this.spin = 0.6 + 3.6 * k * k;
+      this.tilt = 0.75 * E.inOutSine(Math.min(1, k * 1.6));
+    };
+    this.seg(0.7, (k) => (this.flash = Math.sin(k * Math.PI)), 'pulse');
+    this.seg(2.2, (k) => {
+      this.flash = 0;
+      this.pos.copy(low).add(V(0, 1600 * k * k, 0));
+      this.alpha = clamp(1 - (k - 0.5) / 0.5, 0, 1);
+    }, 'gone');
+  }
+
+  animate(dt) {
+    this.model.body.rotation.y += this.spin * dt;
+    const c = this.mgr.camera.position;
+    this.group.rotation.y = Math.atan2(c.x - this.pos.x, c.z - this.pos.z);
+    this.group.rotation.x = -this.tilt; // show the lit underside to the viewer
+    this.model.group.visible = this.alpha > 0.01;
+  }
+
+  lightLevel(L, i) {
+    const n = this.mgr.world.sky.night;
+    if (this.flash > 0) return 1 + this.flash * 3;
+    if (L.role === 'core') return 0.5 * (0.3 + n);
+    const chase = 0.55 + 0.45 * Math.sin(this.t * this.spin * 3 - i * 1.9);
+    return chase * 1.3 * (0.3 + n * 0.8);
+  }
+}
+
+// EPIC: a perfectly smooth cloud forms over town and refuses to move. A
+// colossal hull pokes out of it, lightning flickers inside, and three
+// scouts drop out to buzz the neighborhood before it all dissolves.
+class Cloudship extends Craft {
+  constructor(mgr, model, rng, { near }) {
+    super(mgr, 'cloudship', model, rng);
+    const p = mgr.player.pos;
+    const a = rng.float(0, Math.PI * 2);
+    const r = near ? 220 : rng.float(250, 420);
+    const c0 = V(p.x + Math.cos(a) * r, rng.float(280, 330), p.z + Math.sin(a) * r);
+    const drift = V(rng.float(-0.6, 0.6), 0, rng.float(-0.6, 0.6));
+    this.yaw = rng.float(0, Math.PI * 2);
+    this.cloud = 0;
+    this.hullA = 0;
+    this.pos.copy(c0);
+    const at = (t) => c0.clone().addScaledVector(drift, t);
+    this.seg(14, (k, t) => {
+      this.pos.copy(at(t));
+      this.cloud = k;
+      this.hullA = clamp(k * 2 - 1, 0, 1);
+    }, 'form');
+    const hold = rng.float(80, 110);
+    this.seg(hold, (k, t) => this.pos.copy(at(t)), 'hold');
+    this.seg(14, (k, t) => {
+      this.pos.copy(at(t));
+      this.cloud = 1 - k;
+      this.hullA = clamp(1 - k * 2, 0, 1);
+    }, 'dissolve');
+    // Scout flight plan (world-space waypoints around the player).
+    this.scoutStart = 14 + 12;
+    this.scouts = [0, 1, 2].map(() => {
+      const wp = [0, 1, 2].map(() => {
+        const ang = rng.float(0, Math.PI * 2);
+        const rr = rng.float(40, 180);
+        return V(p.x + Math.cos(ang) * rr, rng.float(40, 90), p.z + Math.sin(ang) * rr);
+      });
+      return { wp, delay: rng.float(0, 6) };
+    });
+    this.scoutLegs = [6, 5, 4, 5, 6];
+  }
+
+  _scoutPos(sc, t, out) {
+    // belly -> wp0 -> wp1 (hover) -> wp2 -> belly
+    const belly = _w.copy(this.pos).add(V(-40, -30, 0));
+    const pts = [belly.clone(), sc.wp[0], sc.wp[1], sc.wp[1], sc.wp[2], belly.clone()];
+    let tt = t;
+    for (let i = 0; i < this.scoutLegs.length; i++) {
+      const d = this.scoutLegs[i];
+      if (tt <= d) return out.lerpVectors(pts[i], pts[i + 1], E.inOutSine(tt / d));
+      tt -= d;
+    }
+    return null;
+  }
+
+  animate() {
+    const m = this.model;
+    this.group.rotation.set(0, this.yaw, 0);
+    m.cloudMats.forEach((cm, i) => (cm.opacity = this.cloud * (0.86 - i * 0.06)));
+    m.materials[0].opacity = this.hullA;
+    m.hull.visible = this.hullA > 0.01;
+    this.scoutVis = [];
+    for (let i = 0; i < 3; i++) {
+      const sc = this.scouts[i];
+      const st = this.t - this.scoutStart - sc.delay;
+      const marker = m.lights[2 + i].obj;
+      const wp = st > 0 ? this._scoutPos(sc, st, _v) : null;
+      if (wp) {
+        marker.position.copy(wp).sub(this.pos).applyAxisAngle(V(0, 1, 0), -this.yaw);
+        this.scoutVis.push(clamp(st / 0.8, 0, 1));
+      } else {
+        marker.position.set(-40, -30, 0);
+        this.scoutVis.push(0);
+      }
+    }
+  }
+
+  lightLevel(L, i) {
+    const n = this.mgr.world.sky.night;
+    if (L.role === 'inner') {
+      const bolt = hash(Math.floor(this.t * 8), 3) > 0.93 ? 0.55 : 0;
+      return (0.05 + bolt) * this.cloud * (0.3 + n);
+    }
+    if (L.role === 'nose') return 0.9 * this.hullA * (0.2 + n);
+    return (this.scoutVis?.[i - 2] || 0) * (0.5 + n * 1.2);
+  }
+}
+
+// EPIC: comes in low over the corn, lowers, and shines a beam straight down
+// for a while. When it's gone, the corn underneath has been laid flat.
+class Beam extends Craft {
+  constructor(mgr, model, rng, { near, at }) {
+    super(mgr, 'beam', model, rng);
+    const corn = ZONES.corn;
+    const spot = at || V((corn[0] + corn[2]) / 2 + rng.float(-25, 25), 0, (corn[1] + corn[3]) / 2 + rng.float(-25, 25));
+    this.spot = spot;
+    const a = rng.float(0, Math.PI * 2);
+    const start = V(spot.x + Math.cos(a) * 900, 150, spot.z + Math.sin(a) * 900);
+    const over = V(spot.x, 60, spot.z);
+    const low = V(spot.x, 28, spot.z);
+    this.beamA = 0;
+    this.pos.copy(start);
+    this.seg(near ? 6 : 14, (k) => this.pos.lerpVectors(start, over, E.outCubic(k)), 'arrive');
+    this.seg(6, (k) => this.pos.lerpVectors(over, low, E.inOutSine(k)), 'descend');
+    this.seg(3, (k) => {
+      this.pos.copy(low);
+      this.beamA = k;
+    }, 'beamOn');
+    this.hover(low, rng.float(25, 40), 'beaming', 0.3, 0.4);
+    this.seg(2, (k) => {
+      this.beamA = 1 - k;
+      this.beamDone = true;
+    }, 'beamOff');
+    const up = V(spot.x, 90, spot.z);
+    this.seg(5, (k) => this.pos.lerpVectors(low, up, E.inOutSine(k)), 'rise');
+    const out = V(Math.cos(a + 2), 0.4, Math.sin(a + 2)).normalize();
+    this.seg(4, (k) => this.pos.copy(up).addScaledVector(out, 1500 * k * k * k), 'depart');
+  }
+
+  animate(dt) {
+    const m = this.model;
+    m.body.rotation.y += dt * 0.25;
+    const h = Math.max(1, this.pos.y - 1.6 - 0.3);
+    m.beam.scale.set(h * 0.3, h, h * 0.3);
+    m.beam.rotation.z = Math.sin(this.t * 0.7) * 0.07;
+    m.beam.rotation.x = Math.cos(this.t * 0.5) * 0.06;
+    m.beam.visible = this.beamA > 0.01;
+    m.beamMat.opacity = this.beamA * (0.22 + 0.04 * Math.sin(this.t * 13));
+  }
+
+  lightLevel(L, i) {
+    const n = this.mgr.world.sky.night;
+    if (L.role === 'lamp') return (0.3 + this.beamA * 1.6) * (0.3 + n);
+    return (Math.sin(this.t * 3 + i * 0.8) > 0.2 ? 1.1 : 0.2) * (0.3 + n * 0.8);
+  }
+}
+
 export class UFOManager {
   constructor(game) {
     this.game = game;
@@ -634,7 +983,7 @@ export class UFOManager {
     this.camera = game.camera;
     this.current = null;
     this.lastAbs = null;
-    this.models = { saucer: buildSaucer(), cigar: buildCigar(), triangle: buildTriangle(), sphere: buildSphere(), vee: buildV(), dots: buildDots(5), k1947: build1947(), phoenix: buildPhoenix() };
+    this.models = { saucer: buildSaucer(), cigar: buildCigar(), triangle: buildTriangle(), sphere: buildSphere(), vee: buildV(), dots: buildDots(5), k1947: build1947(), phoenix: buildPhoenix(), orbs: buildOrbs(4), star: buildStar(), tictac: buildTicTac(), ring: buildRing(), cloudship: buildCloudship(), beam: buildBeamCraft() };
     // Live reflections for the chrome sphere.
     this.cubeRT = new THREE.WebGLCubeRenderTarget(96);
     this.cubeCam = new THREE.CubeCamera(1, 1500, this.cubeRT);
@@ -648,6 +997,23 @@ export class UFOManager {
     for (let i = 0; i < 16; i++) this.glowPool.push(g.add(V(0, -500, 0), '#ffffff', 1));
     // Three flares for the flare lure.
     this.flareGlows = [0, 1, 2].map(() => g.add(V(0, -500, 0), '#ff3a1a', 1.6));
+
+    // The crop circle left behind by the Harvester is evidence too.
+    const mgr0 = this;
+    this.world.subjects.push({
+      id: 'crop-circle',
+      kind: 'crop',
+      label: 'Crop circle',
+      category: 'anomaly',
+      value: 160,
+      radius: 22,
+      tier: 'epic',
+      get sightingId() {
+        return mgr0.state.crop ? `crop-d${mgr0.state.crop.day}` : null;
+      },
+      getPos: (cam, out) => out.set(mgr0.crop.C.x, 0.5, mgr0.crop.C.z),
+      isActive: () => !!mgr0.crop,
+    });
 
     // Register each type as a photo subject. They only count while flying.
     for (const [type, info] of Object.entries(UFO_TYPES)) {
@@ -666,6 +1032,7 @@ export class UFOManager {
           return mgr.world.sky.night > 0.5;
         },
         legend: !!info.legend,
+        tier: info.tier,
         getPos: (cam, out) => out.copy(mgr.current.pos),
         getVel: () => mgr.current.vel,
         isActive: () => mgr.current?.type === type && mgr.current.alpha > 0.35,
@@ -720,7 +1087,7 @@ export class UFOManager {
     const rng = new RNG(Math.floor(Math.random() * 1e9));
     const night = this.world.sky.night > 0.5;
     const model = this.models[type];
-    const C = { saucer: Saucer, cigar: Cigar, triangle: Triangle, sphere: Sphere, vee: Vee, dots: Dots, k1947: K1947, phoenix: Phoenix }[type];
+    const C = { saucer: Saucer, cigar: Cigar, triangle: Triangle, sphere: Sphere, vee: Vee, dots: Dots, k1947: K1947, phoenix: Phoenix, orbs: Orbs, star: Star, tictac: TicTac, ring: Ring, cloudship: Cloudship, beam: Beam }[type];
     this.current = new C(this, model, rng, { night, near, at });
     S.ufo.n += 1;
     this.current.sightingId = `${type}-d${S.day}-${S.ufo.n}`;
@@ -738,6 +1105,16 @@ export class UFOManager {
     else if (c.type === 'triangle') msg = 'A low hum, more felt than heard. The crickets have stopped.';
     else if (c.type === 'sphere') msg = night ? 'The crickets stop. All of them, at once.' : 'Something is hanging perfectly still in the sky.';
     else if (c.type === 'vee') msg = 'A row of lights is moving across the sky. Not a sound.';
+    else if (c.type === 'orbs') {
+      if (Math.random() < 0.4) return;
+      msg = "Orange lights are rising over the trees. Lanterns? They're not drifting like lanterns.";
+    } else if (c.type === 'star') {
+      if (Math.random() < 0.6) return;
+      msg = 'One of the stars is moving.';
+    } else if (c.type === 'tictac') msg = 'Something white is darting over the field. It moves like a skipping tape.';
+    else if (c.type === 'ring') msg = 'A wheel of colored lights is coming down out of the sky.';
+    else if (c.type === 'cloudship') msg = "A strange, perfectly smooth cloud has formed over town. It isn't moving with the others.";
+    else if (c.type === 'beam') msg = 'A beam of light is touching down somewhere past the houses. Toward the corn.';
     else if (c.type === 'k1947') msg = 'Something flashes in the sky, like sun off a mirror. Then again. Then again.';
     else if (c.type === 'phoenix') msg = 'The whole block has gone silent. Up and down the street, people are stepping out onto their lawns.';
     else {
@@ -839,6 +1216,75 @@ export class UFOManager {
     }
   }
 
+  // Lay the corn flat in a pattern (and stand it back up when it expires).
+  _makeCrop(C) {
+    const corn = this.world.corn;
+    const { spots, original } = corn.userData;
+    const rng = new RNG(C.seed);
+    const R = rng.float(11, 15);
+    const sats = [0, 1, 2].map((i) => {
+      const a = (i / 3) * Math.PI * 2 + rng.float(0, 2);
+      return { x: C.x + Math.cos(a) * (R + 11), z: C.z + Math.sin(a) * (R + 11), r: rng.float(3, 5) };
+    });
+    const inside = (x, z) => {
+      const d = Math.hypot(x - C.x, z - C.z);
+      if (d < R || (d > R + 3 && d < R + 5)) return true;
+      return sats.some((s) => Math.hypot(x - s.x, z - s.z) < s.r);
+    };
+    const m4 = new THREE.Matrix4();
+    corn.instanceMatrix.array.set(original);
+    spots.forEach(([x, z], i) => {
+      if (inside(x, z)) corn.setMatrixAt(i, m4.makeScale(0.001, 0.001, 0.001).setPosition(x, -1, z));
+    });
+    corn.instanceMatrix.needsUpdate = true;
+    // Flattened straw, swirled.
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 128;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#c8ac6c';
+    g.fillRect(0, 0, 128, 128);
+    g.strokeStyle = '#a08848';
+    g.lineWidth = 2;
+    for (let k = 0; k < 40; k++) {
+      g.beginPath();
+      for (let a = 0; a < 12; a += 0.2) {
+        const rr = 2 + a * 5 + k * 0.3;
+        g.lineTo(64 + Math.cos(a + k * 0.157) * rr, 64 + Math.sin(a + k * 0.157) * rr);
+      }
+      g.stroke();
+    }
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const mat = new THREE.MeshLambertMaterial({ map: tex, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8 });
+    const grp = new THREE.Group();
+    const flat = (geo, x, z) => {
+      const m = new THREE.Mesh(geo.rotateX(-Math.PI / 2), mat);
+      m.position.set(x, 0.08, z);
+      grp.add(m);
+    };
+    flat(new THREE.CircleGeometry(R, 40), C.x, C.z);
+    flat(new THREE.RingGeometry(R + 3, R + 5, 48), C.x, C.z);
+    for (const sa of sats) flat(new THREE.CircleGeometry(sa.r, 20), sa.x, sa.z);
+    this.game.scene.add(grp);
+    this.crop = { grp, C };
+  }
+
+  _clearCrop() {
+    const corn = this.world.corn;
+    corn.instanceMatrix.array.set(corn.userData.original);
+    corn.instanceMatrix.needsUpdate = true;
+    this.game.scene.remove(this.crop.grp);
+    this.crop.grp.traverse((o) => o.geometry?.dispose());
+    this.crop = null;
+  }
+
+  _updateCrop() {
+    const S = this.state;
+    if (S.crop && S.day > S.crop.day + 3) S.crop = null;
+    if (this.crop && (!S.crop || this.crop.C !== S.crop)) this._clearCrop();
+    if (S.crop && !this.crop) this._makeCrop(S.crop);
+  }
+
   // Called every frame while playing.
   update(dt) {
     const S = this.state;
@@ -853,6 +1299,7 @@ export class UFOManager {
     this.lastAbs = abs;
     this._legendMail();
     this._updateLure(abs);
+    this._updateCrop();
 
     if (this.current) {
       const c = this.current;
@@ -881,6 +1328,11 @@ export class UFOManager {
   }
 
   end() {
+    const c = this.current;
+    if (c.type === 'beam' && c.beamDone) {
+      const S = this.state;
+      S.crop = { x: c.spot.x, z: c.spot.z, day: S.day, seed: Math.floor(Math.random() * 1e6) };
+    }
     this.current.dispose();
     this.current = null;
     this.world.disturb = null;

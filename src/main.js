@@ -438,6 +438,13 @@ class Game {
     if (input.keysPressed.has('BracketLeft')) this.state.hour = (this.state.hour + 23) % 24;
     if (input.keysPressed.has('Backslash')) this.timeScale = this.timeScale > 1 ? 1 : 30;
     if (input.keysPressed.has('F10')) this.state.money += 500;
+    if (input.keysPressed.has('KeyN')) {
+      // Cycle through every type.
+      const all = ['dots', 'orbs', 'star', 'saucer', 'cigar', 'triangle', 'vee', 'sphere', 'tictac', 'ring', 'cloudship', 'beam', 'k1947', 'phoenix'];
+      this._dbgType = ((this._dbgType ?? -1) + 1) % all.length;
+      this.ufos.spawn(all[this._dbgType], true);
+      this.hud.toast(`[debug] ${all[this._dbgType]} spawned nearby.`);
+    }
     if (input.keysPressed.has('F8')) {
       this.applyItem('lure_mirror');
       this.applyItem('lure_flares');
@@ -549,7 +556,7 @@ class Game {
 
   _debugLine() {
     const p = this.player.pos;
-    return `[debug] ${Math.round(this.fps)} fps &middot; ${p.x.toFixed(0)}, ${p.z.toFixed(0)} &middot; [ ] hour &middot; \\ fast &middot; 1-8 spawn UFO &middot; F8 lures &middot; F9 orb &middot; F10 $$$`;
+    return `[debug] ${Math.round(this.fps)} fps &middot; ${p.x.toFixed(0)}, ${p.z.toFixed(0)} &middot; [ ] hour &middot; \\ fast &middot; 1-8 / N spawn UFO &middot; F8 lures &middot; F9 orb &middot; F10 $$$`;
   }
 }
 

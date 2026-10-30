@@ -780,6 +780,9 @@ export function buildCorn(ctx) {
   scene.add(im);
   // Dirt between rows.
   ctx.batch.get('paint').ground(x0, z0, x1, z1, 0.04, new THREE.Color('#7a6a4a'));
+  // Kept so stalks can be flattened (crop circles) and stood back up.
+  im.userData.spots = spots;
+  im.userData.original = im.instanceMatrix.array.slice();
   return im;
 }
 

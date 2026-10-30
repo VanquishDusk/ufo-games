@@ -181,7 +181,7 @@ export class HUD {
   showPreview(url, report) {
     this.preview.querySelector('img').src = url;
     const subj = report.subjects.find((s) => s.category === 'anomaly') || report.subjects[0];
-    const txt = subj ? subj.label : report.notes[0] || 'Nothing unusual';
+    const txt = subj ? `${subj.label}${subj.tier && subj.category === 'anomaly' ? ` \u00b7 ${subj.tier.toUpperCase()}` : ''}` : report.notes[0] || 'Nothing unusual';
     this.preview.querySelector('.txt').textContent = txt;
     const gEl = this.preview.querySelector('.grade');
     gEl.textContent = report.grade;

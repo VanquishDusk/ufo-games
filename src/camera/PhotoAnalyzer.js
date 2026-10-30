@@ -99,6 +99,7 @@ export class PhotoAnalyzer {
         id: s.id,
         kind: s.kind || null,
         legend: !!s.legend,
+        tier: s.tier || null,
         label: s.label,
         category: s.category,
         value: s.value || 0,

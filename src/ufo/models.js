@@ -224,3 +224,107 @@ export function buildPhoenix() {
   for (let i = 0; i < PHOENIX_LIGHTS; i++) lights.push(marker(body, vPos[i].x, vPos[i].y - 1, vPos[i].z, '#ffb870', 30, 'halo'));
   return { group, body, hull, lights, vPos, rowPos, order, materials: [hullMat] };
 }
+
+// COMMON: a few flickering orange orbs. Lights only.
+export function buildOrbs(n = 4) {
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  group.add(body);
+  const lights = [];
+  for (let i = 0; i < n; i++) lights.push(marker(body, 0, 0, 0, '#ff8a2e', 4.5, 'orb'));
+  for (let i = 0; i < n; i++) lights.push(marker(body, 0, 0, 0, '#ff5a1a', 13, 'halo'));
+  return { group, body, lights, materials: [] };
+}
+
+// COMMON: a single star-like point.
+export function buildStar() {
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  group.add(body);
+  return { group, body, lights: [marker(body, 0, 0, 0, '#f4f6ff', 3.6, 'star')], materials: [] };
+}
+
+// RARE: the white, featureless "Tic Tac".
+export function buildTicTac() {
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  group.add(body);
+  const white = psx(new THREE.MeshPhongMaterial({ color: '#f1f3f5', specular: '#ffffff', shininess: 35, emissive: '#2a2c30', fog: false, transparent: true }));
+  body.add(new THREE.Mesh(new THREE.CapsuleGeometry(2.4, 9.5, 8, 16).rotateZ(Math.PI / 2), white));
+  return { group, body, lights: [marker(body, 0, 0, 0, '#e6f0ff', 10, 'aura')], materials: [white] };
+}
+
+// RARE: a dark disc carrying a spinning wheel of colored lights.
+export function buildRing() {
+  const group = new THREE.Group();
+  group.rotation.order = 'YXZ';
+  const body = new THREE.Group();
+  group.add(body);
+  const dark = psx(new THREE.MeshPhongMaterial({ color: '#16171c', specular: '#3a3a44', shininess: 30, fog: false }));
+  body.add(new THREE.Mesh(new THREE.CylinderGeometry(14, 12, 1.6, 32), dark));
+  body.add(new THREE.Mesh(new THREE.TorusGeometry(13.2, 0.5, 6, 40).rotateX(Math.PI / 2).translate(0, -0.9, 0), dark));
+  const cols = ['#ff3a2a', '#3aff6a', '#f4f6ff'];
+  const lights = [];
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2;
+    lights.push(marker(body, Math.cos(a) * 13, -1.1, Math.sin(a) * 13, cols[i % 3], 3.4, 'wheel'));
+  }
+  lights.push(marker(body, 0, -1.4, 0, '#ffffff', 9, 'core'));
+  return { group, body, lights, materials: [dark] };
+}
+
+// EPIC: a colossal hull hiding inside a lenticular cloud, with scouts.
+export function buildCloudship() {
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  group.add(body);
+  const cloudMats = [];
+  const layers = [
+    [0, 0, 0, 150, 26, 110, '#d8dce4'],
+    [12, 14, -6, 118, 18, 86, '#e4e8ee'],
+    [-8, -12, 4, 132, 14, 96, '#c4c8d2'],
+    [30, 24, 10, 70, 12, 52, '#eef0f4'],
+  ];
+  for (const [x, y, z, sx, sy, sz, c] of layers) {
+    const m = new THREE.MeshLambertMaterial({ color: c, emissive: '#1c1f28', transparent: true, opacity: 0, depthWrite: false, fog: false });
+    cloudMats.push(m);
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 10), m);
+    mesh.scale.set(sx, sy, sz);
+    mesh.position.set(x, y, z);
+    mesh.renderOrder = 2;
+    body.add(mesh);
+  }
+  const hullMat = psx(new THREE.MeshPhongMaterial({ color: '#0c0d11', specular: '#24242c', shininess: 20, fog: false, transparent: true, opacity: 0 }));
+  const hull = new THREE.Mesh(new THREE.CapsuleGeometry(16, 170, 6, 18).rotateZ(Math.PI / 2), hullMat);
+  hull.position.set(-40, -10, 0);
+  body.add(hull);
+  const lights = [
+    marker(body, 0, 0, 0, '#b8a8ff', 140, 'inner'),
+    marker(body, -135, -10, 0, '#ffd8a0', 6, 'nose'),
+    marker(group, 0, 0, 0, '#fff0d0', 4.5, 'scout'),
+    marker(group, 0, 0, 0, '#fff0d0', 4.5, 'scout'),
+    marker(group, 0, 0, 0, '#fff0d0', 4.5, 'scout'),
+  ];
+  return { group, body, hull, lights, cloudMats, materials: [hullMat] };
+}
+
+// EPIC: a dark lens that shines a beam straight down into the corn.
+export function buildBeamCraft() {
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  group.add(body);
+  const dark = psx(new THREE.MeshPhongMaterial({ color: '#1c1d22', specular: '#5a5a66', shininess: 50, fog: false, side: THREE.DoubleSide }));
+  const prof = [[0, -1.6], [6, -1.4], [11, -0.4], [12, 0], [11, 0.5], [6, 1.5], [0, 1.9]].map(([x, y]) => new THREE.Vector2(x, y));
+  body.add(new THREE.Mesh(new THREE.LatheGeometry(prof, 36), dark));
+  const beamMat = new THREE.MeshBasicMaterial({ color: '#cfe6ff', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, side: THREE.DoubleSide });
+  const beam = new THREE.Mesh(new THREE.ConeGeometry(1, 1, 28, 1, true).translate(0, -0.5, 0), beamMat);
+  beam.position.y = -1.6;
+  group.add(beam);
+  const lights = [];
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    lights.push(marker(body, Math.cos(a) * 11.4, -0.3, Math.sin(a) * 11.4, '#ff3a26', 2.6, 'rim'));
+  }
+  lights.push(marker(body, 0, -1.9, 0, '#e8f4ff', 10, 'lamp'));
+  return { group, body, beam, beamMat, lights, materials: [dark] };
+}

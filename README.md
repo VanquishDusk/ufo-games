@@ -27,7 +27,7 @@ save. The game appears at `https://<user>.github.io/ufo-games/` a minute or two 
 `package.json`, bump the version in the import map too.)
 
 Add `?debug` (or `#debug`) to the URL for dev keys: `[` / `]` change the hour, `\` toggles
-30x time, **1–8 spawn a saucer / cigar / triangle / sphere / V / dots / '47 / Phoenix nearby**, F8 gives one of each lure, F9 spawns a glowing test
+30x time, **1–8 spawn a saucer / cigar / triangle / sphere / V / dots / '47 / Phoenix nearby, N cycles through every type**, F8 gives one of each lure, F9 spawns a glowing test
 orb, and F10 adds $500.
 
 ## Controls
@@ -124,6 +124,20 @@ barking, crickets go silent, street lamps flicker underneath, and there's a hum.
 | **Sphere** (chrome orb, spiral grooves) | Rare; mostly day | Drops straight down out of the sky and stops dead: no bob, barely any drift, slowly turning. Its surface is a live reflection of the town and sky around it. Glides on a smooth curve to a new spot (once or twice), then shoots straight up and is gone. | $320 |
 | **V / boomerang** (huge dark chevron) | Dusk and night | Glides apex-first in a dead-straight line at constant speed, completely silent, five steady lights along its arms. On its way out the lights go dark one by one, and then it's gone. | $230 |
 | **Circling lights** (3–5 white dots) | Common; dusk and night | Very high. The dots circle one another, reverse direction, and one sometimes darts out of the group and back. The cluster drifts, then scatters in all directions or fades. Easy to mistake for stars, and you need zoom to get more than specks. | $70 |
+
+### More craft, by tier
+
+Every craft has a rarity tier, shown on the photo card and in the album: common, uncommon, rare,
+epic or legend. Odds depend on the time of day.
+
+| Type | Tier | When | How it moves | Base value |
+| --- | --- | --- | --- | --- |
+| **Orange orbs** | Common | Dusk, night | 2–4 fire-orange lights rise from behind the trees and drift downwind in a loose line, flickering, then burn out one at a time. | $55 |
+| **Moving star** | Common | Night | A star-like point crosses the sky in a straight line, stops dead, turns sharply and accelerates away. | $45 |
+| **Tic Tac** | Rare | Day, dusk | White featureless capsule over the fields. Holds dead still with a faint tremble, then jumps 10–35 m in a fraction of a second, over and over. Leaves by vanishing sideways. | $380 |
+| **Ring of lights** | Rare | Dusk, night | A wheel of red, green and white lights sinks slowly out of the sky, spins faster and faster, tilts its face toward you, flashes once and shoots straight up. | $420 |
+| **The Cloud Ship** | Epic | Any time | A perfectly smooth lenticular cloud forms over town and doesn't drift. A colossal dark hull pokes out of it, light flickers inside, and three scout orbs drop out, buzz around the neighborhood and return. Then the cloud dissolves. | $950 |
+| **The Harvester** | Epic | Night | A dark lens comes in low over the corn and shines a beam straight down for half a minute. Afterwards, the corn underneath is flattened into a **crop circle** that stays for three days and can be photographed ($160). | $850 |
 
 ### Legends
 
