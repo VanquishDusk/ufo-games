@@ -104,6 +104,12 @@ class Craft {
     s.fn(this.segT / s.dur, this.t);
     if (dt > 0) this.vel.subVectors(this.pos, this._prev).divideScalar(dt);
     this.animate(dt, ctx);
+    // Polished metal mirrors the sky; matte black doesn't.
+    if (this.skyReflect) {
+      const pal = this.mgr.world.sky.pal;
+      const k = this.skyReflect * (0.15 + 0.85 * this.mgr.world.sky.daylight);
+      this.model.materials[0].emissive.copy(pal.hor).lerp(pal.top, 0.4).multiplyScalar(k).addScalar(0.006);
+    }
     this.group.updateMatrixWorld(true);
     this.syncLights(ctx);
   }
@@ -133,6 +139,7 @@ class Craft {
 class Saucer extends Craft {
   constructor(mgr, model, rng, { night, near }) {
     super(mgr, 'saucer', model, rng);
+    this.skyReflect = 0.35;
     this.night = night;
     const player = mgr.player.pos;
     const sites = SITES.filter((s) => Math.hypot(s.x - player.x, s.z - player.z) < 380);
@@ -192,6 +199,7 @@ class Saucer extends Craft {
 class Cigar extends Craft {
   constructor(mgr, model, rng, { near }) {
     super(mgr, 'cigar', model, rng);
+    this.skyReflect = 0.6;
     const player = mgr.player.pos;
     const r = near ? 120 : rng.float(80, 230);
     const a0 = rng.float(0, Math.PI * 2);
