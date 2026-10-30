@@ -45,9 +45,9 @@ export const BUYERS = [
 // Buyers' tastes: the tabloid loves saucers, Vos wants the strange stuff,
 // the news desk likes something they can see in daylight.
 const KIND_MULT = {
-  probe: { saucer: 1.3, cigar: 0.9, triangle: 1.0, sphere: 1.1, vee: 1.2, dots: 0.8, k1947: 1.0, phoenix: 1.2, orbs: 0.8, star: 0.7, tictac: 1.2, ring: 1.2, cloudship: 1.3, beam: 1.5, crop: 1.4 },
-  vos: { saucer: 1.0, cigar: 1.2, triangle: 1.35, sphere: 1.4, vee: 1.2, dots: 0.9, k1947: 1.4, phoenix: 1.1, orbs: 0.8, star: 0.9, tictac: 1.4, ring: 1.1, cloudship: 1.3, beam: 1.1, crop: 1.2 },
-  kchv: { saucer: 1.0, cigar: 1.25, triangle: 0.9, sphere: 1.3, vee: 1.0, dots: 0.6, k1947: 1.0, phoenix: 1.5, orbs: 0.9, star: 0.5, tictac: 1.3, ring: 1.0, cloudship: 1.6, beam: 1.2, crop: 1.5 },
+  probe: { saucer: 1.3, cigar: 0.9, triangle: 1.0, sphere: 1.1, vee: 1.2, dots: 0.8, k1947: 1.0, phoenix: 1.2, orbs: 0.8, star: 0.7, tictac: 1.2, ring: 1.2, cloudship: 1.3, beam: 1.5, crop: 1.4, ghost: 0.9, fireball: 1.2, cube: 0.9, hunter: 1.5, egg: 1.3, diamond: 1.4 },
+  vos: { saucer: 1.0, cigar: 1.2, triangle: 1.35, sphere: 1.4, vee: 1.2, dots: 0.9, k1947: 1.4, phoenix: 1.1, orbs: 0.8, star: 0.9, tictac: 1.4, ring: 1.1, cloudship: 1.3, beam: 1.1, crop: 1.2, ghost: 1.2, fireball: 1.3, cube: 1.5, hunter: 1.1, egg: 1.4, diamond: 1.2 },
+  kchv: { saucer: 1.0, cigar: 1.25, triangle: 0.9, sphere: 1.3, vee: 1.0, dots: 0.6, k1947: 1.0, phoenix: 1.5, orbs: 0.9, star: 0.5, tictac: 1.3, ring: 1.0, cloudship: 1.6, beam: 1.2, crop: 1.5, ghost: 0.8, fireball: 1.1, cube: 1.0, hunter: 1.4, egg: 1.6, diamond: 1.5 },
 };
 
 const repMult = (state, id) => 1 + Math.min(10, state.rep[id] || 0) * 0.05;

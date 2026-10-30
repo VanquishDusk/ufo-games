@@ -14,28 +14,34 @@
 import * as THREE from 'three';
 import { bus } from '../core/events.js';
 import { RNG, clamp, noise1 } from '../core/rng.js';
-import { buildSaucer, buildCigar, buildTriangle, buildSphere, buildV, buildDots, build1947, buildPhoenix, PHOENIX_LIGHTS, buildOrbs, buildStar, buildTicTac, buildRing, buildCloudship, buildBeamCraft } from './models.js';
+import { buildSaucer, buildCigar, buildTriangle, buildSphere, buildV, buildDots, build1947, buildPhoenix, PHOENIX_LIGHTS, buildOrbs, buildStar, buildTicTac, buildRing, buildCloudship, buildBeamCraft, buildGhost, buildFireball, FIREBALL_TRAIL, buildCube, buildHunter, buildEgg, buildDiamond } from './models.js';
 import { hash } from '../core/rng.js';
 import { LURES } from '../game/lures.js';
-import { ZONES, LANDMARKS } from '../world/layout.js';
+import { ZONES, LANDMARKS, STREETS } from '../world/layout.js';
 
 export const UFO_TYPES = {
   // common
   dots: { label: 'Circling lights', value: 70, radius: 30, tier: 'common' },
   orbs: { label: 'Orange orbs', value: 55, radius: 25, tier: 'common' },
+  ghost: { label: 'Ghost lights', value: 60, radius: 9, tier: 'common' },
   star: { label: 'Moving star', value: 45, radius: 10, tier: 'common' },
   // uncommon
   saucer: { label: 'Flying saucer', value: 150, radius: 7.2, tier: 'uncommon' },
   cigar: { label: 'Cigar-shaped craft', value: 130, radius: 11, tier: 'uncommon' },
   triangle: { label: 'Black triangle', value: 210, radius: 20, tier: 'uncommon' },
   vee: { label: 'V-shaped craft', value: 230, radius: 26, tier: 'uncommon' },
+  fireball: { label: 'Green fireball', value: 200, radius: 6, tier: 'uncommon' },
   // rare
   sphere: { label: 'Metallic sphere', value: 320, radius: 2.8, tier: 'rare' },
   tictac: { label: 'Tic Tac', value: 380, radius: 7, tier: 'rare' },
   ring: { label: 'Ring of lights', value: 420, radius: 14, tier: 'rare' },
+  cube: { label: 'Cube in a sphere', value: 360, radius: 3.4, tier: 'rare' },
+  hunter: { label: 'The Hunter', value: 520, radius: 2.5, tier: 'rare', danger: true },
   // epic
   cloudship: { label: 'The Cloud Ship', value: 950, radius: 90, tier: 'epic' },
   beam: { label: 'The Harvester', value: 850, radius: 12, tier: 'epic' },
+  egg: { label: 'The Levelland Egg', value: 780, radius: 7, tier: 'epic', danger: true },
+  diamond: { label: 'The Diamond', value: 1000, radius: 10, tier: 'epic', danger: true },
   // legends: almost never seen without a lure
   k1947: { label: "The '47 Visitor", value: 1200, radius: 12, legend: true, tier: 'legend' },
   phoenix: { label: 'The Phoenix Lights', value: 1500, radius: 150, legend: true, tier: 'legend' },
@@ -62,14 +68,20 @@ const FX = {
   ring: { audio: 'triangle', hush: true, disturb: true },
   cloudship: { audio: 'triangle', hush: true, disturb: false },
   beam: { audio: 'saucer', hush: true, disturb: true },
+  ghost: { audio: null, hush: false, disturb: false },
+  fireball: { audio: null, hush: false, disturb: false },
+  cube: { audio: null, hush: true, disturb: false },
+  hunter: { audio: 'hunter', hush: true, disturb: true },
+  egg: { audio: 'egg', hush: true, disturb: false },
+  diamond: { audio: 'diamond', hush: true, disturb: true },
 };
 
 // Relative odds by time of day. Dots are the everyday sighting, the sphere
 // is the rare prize (and mostly a daylight thing).
 const ODDS = {
-  night: { dots: 24, orbs: 21, star: 17, saucer: 12, triangle: 9, vee: 8, ring: 3, sphere: 0.8, cloudship: 0.7, beam: 0.9 },
-  twilight: { orbs: 15, dots: 11, star: 6, cigar: 16, saucer: 15, vee: 13, sphere: 5, tictac: 4, ring: 1.5, cloudship: 1.2 },
-  day: { cigar: 50, saucer: 18, tictac: 10, sphere: 10, cloudship: 1.2 },
+  night: { dots: 24, orbs: 21, star: 17, ghost: 14, saucer: 12, triangle: 9, vee: 8, fireball: 7, ring: 3, hunter: 2.4, sphere: 0.8, cloudship: 0.7, beam: 0.9, egg: 0.9, diamond: 0.8 },
+  twilight: { orbs: 15, dots: 11, star: 6, ghost: 5, cigar: 16, saucer: 15, vee: 13, fireball: 4, sphere: 5, tictac: 4, cube: 3, ring: 1.5, cloudship: 1.2, egg: 0.4 },
+  day: { cigar: 50, saucer: 18, tictac: 10, sphere: 10, cube: 7, cloudship: 1.2 },
 };
 
 // Places a saucer likes to hang around.
@@ -94,6 +106,7 @@ const E = {
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const _v = new THREE.Vector3();
 const _w = new THREE.Vector3();
+const _c = new THREE.Color();
 
 class Craft {
   constructor(mgr, type, model, rng) {
@@ -984,15 +997,460 @@ class Beam extends Craft {
   }
 }
 
+// A point on a street between dMin and dMax meters from p, if there is one.
+function roadPointNear(p, rng, dMin, dMax) {
+  const cands = [];
+  for (const s of STREETS) {
+    for (let i = 0; i < 16; i++) {
+      const u = rng.float(s.a + 12, s.b - 12);
+      const pt = s.axis === 'x' ? { x: u, z: s.c, along: 0 } : { x: s.c, z: u, along: Math.PI / 2 };
+      const d = Math.hypot(pt.x - p.x, pt.z - p.z);
+      if (d >= dMin && d <= dMax) cands.push(pt);
+    }
+  }
+  return cands.length ? rng.pick(cands) : null;
+}
+
+// COMMON: ghost lights, the kind seen for a century over Marfa and Hessdalen.
+// One to three soft balls low over an open field. They sit and pulse, wander,
+// split apart and circle each other, merge again, and wink out.
+class Ghost extends Craft {
+  constructor(mgr, model, rng, { near, at }) {
+    super(mgr, 'ghost', model, rng);
+    const p = mgr.player.pos;
+    // Always over open ground: the corn, the west field or the park.
+    let c = at;
+    if (!c) {
+      const zones = [ZONES.corn, ZONES.field, ZONES.park];
+      const dist = (r) => Math.hypot(clamp(p.x, r[0], r[2]) - p.x, clamp(p.z, r[1], r[3]) - p.z);
+      const r = near ? zones.reduce((a, b) => (dist(b) < dist(a) ? b : a)) : rng.pick(zones);
+      for (let i = 0; i < 30 && (!c || (near && Math.abs(Math.hypot(c.x - p.x, c.z - p.z) - 80) > 35)); i++) c = V(rng.float(r[0] + 8, r[2] - 8), 0, rng.float(r[1] + 8, r[3] - 8));
+    }
+    this.home = V(c.x, rng.float(4, 8), c.z);
+    this.seed = rng.next() * 100;
+    this.n = model.lights.length / 2;
+    this.split = 0;
+    this.alpha = 0;
+    const place = (t) =>
+      this.pos.set(
+        this.home.x + noise1(t * 0.05, this.seed) * 22,
+        this.home.y + Math.sin(t * 0.7) * 0.8 + noise1(t * 0.3, this.seed + 3) * 1.2,
+        this.home.z + noise1(t * 0.05, this.seed + 9) * 22,
+      );
+    this.seg(4, (k, t) => {
+      this.alpha = k;
+      place(t);
+    }, 'appear');
+    this.seg(rng.float(18, 30), (k, t) => place(t), 'drift');
+    this.seg(rng.float(16, 26), (k, t) => {
+      this.split = E.inOutSine(clamp(k * 5, 0, 1));
+      place(t);
+    }, 'split');
+    this.seg(5, (k, t) => {
+      this.split = 1 - E.inOutSine(k);
+      place(t);
+    }, 'merge');
+    if (rng.chance(0.5)) this.seg(rng.float(10, 18), (k, t) => place(t), 'drift');
+    this.seg(3, (k, t) => {
+      this.alpha = 1 - k;
+      place(t);
+    }, 'fade');
+  }
+
+  animate() {
+    const L = this.model.lights;
+    for (let i = 0; i < this.n; i++) {
+      const a = this.t * 0.4 + (i / this.n) * Math.PI * 2;
+      const r = this.split * (7 + 4 * Math.sin(this.t * 0.3 + i));
+      const x = Math.cos(a) * r;
+      const y = this.split * Math.sin(this.t * 1.3 + i * 2) * 1.5;
+      const z = Math.sin(a) * r;
+      L[i].obj.position.set(x, y, z);
+      L[i + this.n].obj.position.set(x, y, z);
+    }
+  }
+
+  lightLevel(L, i) {
+    const pulse = 0.55 + 0.75 * Math.max(0, Math.sin(this.t * 1.9 + (i % this.n) * 2.1)) ** 2;
+    return (L.role === 'halo' ? 0.45 : 1.1) * pulse * (0.35 + this.mgr.world.sky.night * 0.75);
+  }
+}
+
+// UNCOMMON: a green fireball (New Mexico, 1948-51). Brilliant green, and far
+// too flat and steady for a meteor. Sometimes it stops dead in the sky for a
+// few seconds. Then it bursts and is gone. It's over in seconds: pan with it.
+class Fireball extends Craft {
+  constructor(mgr, model, rng, { near }) {
+    super(mgr, 'fireball', model, rng);
+    const p = mgr.player.pos;
+    const h = rng.float(0, Math.PI * 2);
+    const fwd = V(Math.cos(h), 0, Math.sin(h));
+    const miss = (near ? rng.float(50, 110) : rng.float(110, 300)) * (rng.chance(0.5) ? 1 : -1);
+    const mid = V(p.x - fwd.z * miss, rng.float(120, 200), p.z + fwd.x * miss);
+    const half = rng.float(650, 850);
+    const speed = rng.float(100, 140);
+    const A = mid.clone().addScaledVector(fwd, -half);
+    A.y += rng.float(30, 70);
+    const B = mid.clone().addScaledVector(fwd, half);
+    B.y -= rng.float(30, 60);
+    const dur = (2 * half) / speed;
+    this.burst = 0;
+    this.dir = fwd.clone();
+    this.pos.copy(A);
+    const burstAt = (P) =>
+      this.seg(0.8, (k) => {
+        this.pos.copy(P).addScaledVector(fwd, speed * 0.4 * k);
+        this.burst = k;
+        this.alpha = 1 - E.inCubic(k);
+      }, 'burst');
+    if (rng.chance(0.35)) {
+      const M = A.clone().lerp(B, 0.5);
+      this.seg(dur / 2, (k) => this.pos.lerpVectors(A, M, k), 'streak');
+      this.hover(M, rng.float(2.5, 4.5), 'halt', 0.3, 0.6);
+      if (rng.chance(0.5)) return burstAt(M);
+      const E2 = M.clone().lerp(B, 0.6);
+      this.seg((dur / 2) * 0.6, (k) => this.pos.lerpVectors(M, E2, E.inSine(k)), 'streak');
+      burstAt(E2);
+    } else {
+      const E2 = A.clone().lerp(B, 0.82);
+      this.seg(dur * 0.82, (k) => this.pos.lerpVectors(A, E2, k), 'streak');
+      burstAt(E2);
+    }
+  }
+
+  animate() {
+    const spd = this.vel.length();
+    if (spd > 1) this.dir.copy(this.vel).divideScalar(spd);
+    const spacing = clamp(spd * 0.035, 0, 5);
+    const L = this.model.lights;
+    for (let j = 0; j < FIREBALL_TRAIL; j++) L[2 + j].obj.position.copy(this.dir).multiplyScalar(-spacing * (j + 1));
+    this.spd = spd;
+  }
+
+  lightLevel(L, i) {
+    const vis = 0.45 + this.mgr.world.sky.night * 0.8;
+    if (L.role === 'core') return 1.6 * vis;
+    if (L.role === 'halo') return (0.9 + this.burst * 3) * vis;
+    return (1 - (i - 2) / FIREBALL_TRAIL) * clamp((this.spd || 0) / 60, 0, 1) * 0.9 * vis;
+  }
+}
+
+// RARE: a cube in a sphere (the 2014-15 Navy pilot reports). A dark cube
+// inside a clear shell, holding perfectly still against the wind for
+// minutes at a time. Small: you'll want zoom. Now and then it jumps
+// sideways, instantly, and at the end it simply goes straight up.
+class Cube extends Craft {
+  constructor(mgr, model, rng, { near }) {
+    super(mgr, 'cube', model, rng);
+    const p = mgr.player.pos;
+    const a = rng.float(0, Math.PI * 2);
+    const r = near ? rng.float(70, 110) : rng.float(130, 300);
+    let P = V(p.x + Math.cos(a) * r, near ? rng.float(45, 70) : rng.float(80, 150), p.z + Math.sin(a) * r);
+    this.alpha = 0;
+    this.pos.copy(P);
+    const P0 = P.clone();
+    this.seg(3, (k) => {
+      this.alpha = k;
+      this.pos.copy(P0);
+    }, 'appear');
+    const jumps = rng.int(1, 3);
+    for (let i = 0; i <= jumps; i++) {
+      this.hover(P, rng.float(14, 26), 'hold', 0.08, 0.15);
+      if (i === jumps) break;
+      const ang = rng.float(0, Math.PI * 2);
+      const len = rng.float(40, 90);
+      const Q = V(P.x + Math.cos(ang) * len, clamp(P.y + rng.float(-20, 20), 35, 170), P.z + Math.sin(ang) * len);
+      const from = P.clone();
+      this.seg(0.25, (k) => this.pos.lerpVectors(from, Q, E.inOutQuint(k)), 'jump');
+      P = Q;
+    }
+    const top = P.clone();
+    this.seg(4, (k) => {
+      this.pos.copy(top);
+      this.pos.y += 700 * E.inCubic(k);
+      this.alpha = 1 - E.inCubic(k);
+    }, 'climb');
+  }
+
+  animate(dt) {
+    const c = this.model.cube;
+    c.rotation.x += dt * 0.31;
+    c.rotation.y += dt * 0.47;
+    this.model.materials[0].opacity = 0.25 * this.alpha;
+    this.model.materials[1].opacity = this.alpha;
+    this.group.visible = this.alpha > 0.01;
+  }
+
+  lightLevel() {
+    return 0.25 + this.mgr.world.sky.night * 0.5;
+  }
+}
+
+// RARE, DANGEROUS: the Hunter. A red light that sweeps the neighborhood with
+// a faint beam, looking for something. Standing near it in the open makes it
+// notice you, a flashlight makes it notice faster, and firing a flash at it
+// gets its attention at once. (Hiding in the corn helps.) Once it has you,
+// it drops to head height and follows. Get indoors or outlast it. If it
+// reaches you, you lose time.
+class Hunter extends Craft {
+  constructor(mgr, model, rng, { near, at }) {
+    super(mgr, 'hunter', model, rng);
+    const p = mgr.player.pos;
+    const a = rng.float(0, Math.PI * 2);
+    const r = near ? 90 : rng.float(140, 260);
+    this.center = at ? V(at.x, 0, at.z) : V(p.x + Math.cos(a) * r, 0, p.z + Math.sin(a) * r);
+    this.from = V(this.center.x + Math.cos(a) * 600, 160, this.center.z + Math.sin(a) * 600);
+    this.pos.copy(this.from);
+    this.mode = 'arrive';
+    this.mt = 0;
+    this.aware = 0;
+    this.seed = rng.next() * 100;
+    this.searchFor = rng.float(45, 70);
+    this.lastT = 0;
+    this.target = new THREE.Vector3();
+    this.seg(1e6, (k, t) => {
+      const dt = Math.min(0.1, t - this.lastT);
+      this.lastT = t;
+      this._think(dt, t);
+    }, 'hunter');
+  }
+
+  _setMode(m) {
+    this.mode = m;
+    this.mt = 0;
+  }
+
+  _think(dt, t) {
+    this.mt += dt;
+    const mgr = this.mgr;
+    const pp = mgr.player.pos;
+    const cam = mgr.camera.position;
+    const dh = Math.hypot(pp.x - this.pos.x, pp.z - this.pos.z);
+    if (this.mode === 'arrive') {
+      const k = Math.min(1, this.mt / 10);
+      this.pos.lerpVectors(this.from, _v.set(this.center.x, 45, this.center.z), E.outCubic(k));
+      this.target.set(this.pos.x, 0, this.pos.z);
+      if (k >= 1) this._setMode('search');
+    } else if (this.mode === 'search') {
+      // Wander the area, drifting slowly your way, sweeping the ground.
+      this.center.x += (pp.x - this.center.x) * dt * 0.012;
+      this.center.z += (pp.z - this.center.z) * dt * 0.012;
+      this.pos.set(this.center.x + noise1(t * 0.04, this.seed) * 55, 40 + noise1(t * 0.1, this.seed + 4) * 8, this.center.z + noise1(t * 0.04, this.seed + 8) * 55);
+      this.target.set(this.pos.x + Math.cos(t * 0.6) * 28, 0, this.pos.z + Math.sin(t * 0.45) * 28);
+      const pc = mgr.game.photoCam;
+      if (dh < 115) {
+        let rate = 0.03 + (pc.flashlightOn ? 0.3 : 0) + (dh < 55 ? 0.12 : 0);
+        if (mgr._inCorn(pp.x, pp.z)) rate *= 0.35;
+        this.aware += rate * dt;
+      } else this.aware = Math.max(0, this.aware - 0.05 * dt);
+      if (pc.flashTimer > 0 && this.pos.distanceTo(cam) < 170) this.aware = 1;
+      if (this.aware >= 1) {
+        this._setMode('notice');
+        bus.emit('sfx', 'zap');
+        bus.emit('toast', 'The red light stops dead. Its beam swings around... onto you.');
+      } else if (this.mt > this.searchFor) this._setMode('leave');
+    } else if (this.mode === 'notice') {
+      this.target.set(pp.x, 0, pp.z);
+      if (this.mt > 2.5) {
+        this._setMode('hunt');
+        bus.emit('toast', "It's coming down. RUN. Get indoors.");
+      }
+    } else if (this.mode === 'hunt') {
+      _w.set(pp.x, 2.2 + Math.sin(t * 2) * 0.4, pp.z).sub(this.pos);
+      const d = _w.length();
+      const speed = d > 45 ? 11 : 4.8;
+      if (d > 0.01) this.pos.addScaledVector(_w, Math.min(1, (speed * dt) / d));
+      this.target.set(pp.x, 0, pp.z);
+      if (this.pos.distanceTo(cam) < 3.2) {
+        this._setMode('gone');
+        mgr.game.missingTime();
+        return;
+      }
+      if (this.mt > 40) {
+        this._setMode('leave');
+        bus.emit('toast', "The red light pulls up and away. It's given up. For now.");
+      }
+    } else if (this.mode === 'leave') {
+      this.pos.y += (6 + this.mt * 22) * dt;
+      this.alpha = clamp(1 - (this.mt - 4) / 3, 0, 1);
+      this.target.set(this.pos.x, 0, this.pos.z);
+      if (this.mt > 7) this.done = true;
+    } else this.done = true;
+    // Tell the HUD.
+    if (this.mode === 'notice' || this.mode === 'hunt') mgr.danger = { label: "IT'S FOLLOWING YOU", level: clamp(1 - this.pos.distanceTo(cam) / 60, 0.25, 1) };
+    else if (this.mode === 'search' && this.aware > 0.25) mgr.danger = { label: 'SOMETHING IS LOOKING FOR YOU', level: this.aware * 0.6 };
+  }
+
+  update(dt, ctx) {
+    super.update(dt, ctx);
+    if (this.done) this.alpha = 0;
+  }
+
+  animate() {
+    const m = this.model;
+    const night = this.mgr.world.sky.night;
+    _v.copy(this.target).sub(this.pos);
+    const len = _v.length();
+    const show = this.mode !== 'leave' && this.mode !== 'gone' && len > 1;
+    m.beamMat.opacity = show ? (this.mode === 'search' ? 0.07 : 0.14) * this.alpha * (0.3 + night) : 0;
+    if (show) {
+      m.beam.quaternion.setFromUnitVectors(_w.set(0, -1, 0), _v.clone().divideScalar(len));
+      const rad = Math.min(len * 0.12, 5);
+      m.beam.scale.set(rad, len, rad);
+    }
+    m.lights[2].obj.position.copy(this.target).sub(this.pos);
+    m.materials[0].opacity = this.alpha;
+  }
+
+  lightLevel(L) {
+    const vis = 0.5 + this.mgr.world.sky.night * 0.7;
+    const hunting = this.mode === 'hunt' || this.mode === 'notice';
+    const pulse = hunting ? 0.8 + 0.6 * Math.max(0, Math.sin(this.t * 9)) : 0.9 + 0.2 * Math.sin(this.t * 2);
+    if (L.role === 'spot') return this.model.beamMat.opacity > 0 ? 0.6 * this.mgr.world.sky.night : 0;
+    return (L.role === 'core' ? 1.4 : 0.8) * pulse * vis;
+  }
+}
+
+// EPIC, DANGEROUS: the Levelland egg (Texas, 1957). A glowing egg-shaped light
+// the size of a house sets down right on a road. Everything electric near it
+// dies: streetlights, porch lights, flashlights, camera flashes, and any
+// camera with a battery in it. (The K-1 SLR is all mechanical.) Walk right
+// up to it and it lifts off in a wave of heat and static that fogs your film.
+class Egg extends Craft {
+  constructor(mgr, model, rng, { near, at }) {
+    super(mgr, 'egg', model, rng);
+    const p = mgr.player.pos;
+    const rp = at ? { x: at.x, z: at.z, along: 0 } : roadPointNear(p, rng, near ? 60 : 90, near ? 130 : 260) || { x: p.x + 120, z: p.z, along: 0 };
+    const land = V(rp.x, 4.2, rp.z);
+    this.heading = rp.along;
+    this.charge = 0;
+    this.cool = 0;
+    const a = rng.float(0, Math.PI * 2);
+    const start = V(land.x + Math.cos(a) * 700, 90, land.z + Math.sin(a) * 700);
+    this.pos.copy(start);
+    this.seg(14, (k) => this.pos.lerpVectors(start, land, E.outCubic(k)), 'arrive');
+    this.hover(land, rng.float(28, 40), 'landed', 0.15, 0.2);
+    this.liftIdx = this.segs.length;
+    this.seg(2.5, (k) => this.pos.set(land.x, 4.2 + 50 * E.inCubic(k), land.z), 'lift');
+    const dir = V(Math.cos(a + 2), 0.5, Math.sin(a + 2)).normalize();
+    const top = V(land.x, 54.2, land.z);
+    this.seg(5, (k) => this.pos.copy(top).addScaledVector(dir, 1400 * E.inCubic(k)), 'depart');
+  }
+
+  animate(dt) {
+    const landed = this.cur === 'landed';
+    this.cool += ((landed ? 1 : 0) - this.cool) * Math.min(1, dt * 0.8);
+    this.model.body.rotation.y = this.heading + noise1(this.t * 0.1, 5) * 0.05;
+    const pulse = 0.85 + 0.15 * Math.sin(this.t * 3.1);
+    this.model.materials[0].color.set('#ffb04a').lerp(_c.set('#d4ecff'), this.cool).multiplyScalar(pulse);
+    // Too close: static builds until it blasts off.
+    const S = this.mgr.state;
+    const d = this.pos.distanceTo(this.mgr.camera.position);
+    if (landed && d < 35) this.charge += dt * (1 - d / 35) * 0.28;
+    else this.charge = Math.max(0, this.charge - dt * 0.2);
+    if (this.charge > 0.05) this.mgr.danger = { label: 'YOUR HAIR IS STANDING ON END', level: this.charge };
+    if (this.charge >= 1) {
+      this.charge = 0;
+      this.si = this.liftIdx;
+      this.segT = 0;
+      bus.emit('sfx', 'zap');
+      if (S.film.remaining > 0) {
+        S.film.remaining = 0;
+        bus.emit('toast', 'A wave of heat and static knocks you back. Your film is fogged: that roll is ruined.');
+      } else bus.emit('toast', 'A wave of heat and static knocks you back!');
+    }
+  }
+
+  lightLevel(L) {
+    const vis = 0.5 + this.mgr.world.sky.night * 0.6;
+    if (L.role === 'ground') return (this.cur === 'landed' ? 1.2 : 0.15) * vis;
+    if (L.role === 'halo') return (0.8 + 0.3 * Math.sin(this.t * 3.1)) * vis;
+    return vis;
+  }
+}
+
+// EPIC, DANGEROUS: the diamond (Cash-Landrum, Texas, 1980). A blazing diamond
+// as tall as a house hangs low over a road, roaring flame from its underside
+// every few seconds, while unmarked helicopters circle it. The heat on your
+// skin is the warning: stay close too long and you wake up in the hospital.
+class Diamond extends Craft {
+  constructor(mgr, model, rng, { near, at }) {
+    super(mgr, 'diamond', model, rng);
+    const p = mgr.player.pos;
+    const rp = at ? { x: at.x, z: at.z } : roadPointNear(p, rng, near ? 90 : 140, near ? 160 : 300) || { x: p.x - 150, z: p.z };
+    const hold = V(rp.x, rng.float(32, 45), rp.z);
+    const a = rng.float(0, Math.PI * 2);
+    const start = V(hold.x + Math.cos(a) * 650, 140, hold.z + Math.sin(a) * 650);
+    this.pos.copy(start);
+    this.flame = 0;
+    this.nextBurst = rng.float(3, 6);
+    this.burstT = 0;
+    this.heliA = rng.float(0, Math.PI * 2);
+    this.seg(20, (k) => this.pos.lerpVectors(start, hold, E.inOutSine(k)), 'arrive');
+    this.hover(hold, rng.float(50, 70), 'hold', 0.6, 2);
+    const away = V(hold.x - Math.cos(a) * 700, 160, hold.z - Math.sin(a) * 700);
+    this.seg(28, (k) => this.pos.lerpVectors(hold, away, E.inSine(k)), 'depart');
+  }
+
+  animate(dt) {
+    const m = this.model;
+    const mgr = this.mgr;
+    const d = this.pos.distanceTo(mgr.camera.position);
+    this.nextBurst -= dt;
+    if (this.nextBurst <= 0) {
+      this.burstT = this.rng.float(1.4, 2.2);
+      this.nextBurst = this.rng.float(5, 9);
+      if (d < 250) bus.emit('sfx', 'roar');
+    }
+    this.burstT = Math.max(0, this.burstT - dt);
+    this.flame += ((this.burstT > 0 ? 1 : 0.12) - this.flame) * Math.min(1, dt * 6);
+    const f = this.flame * (0.85 + Math.random() * 0.3);
+    m.flame.scale.set(2.5 + f * 2.5, 4 + f * 22, 2.5 + f * 2.5);
+    m.flameMat.opacity = 0.25 + 0.55 * f;
+    m.body.rotation.y += dt * 0.15;
+    m.materials[0].color.setRGB(1, 0.9 + Math.random() * 0.08, 0.72 + this.flame * 0.1);
+    // Two helicopters circling.
+    const L = m.lights;
+    for (let i = 0; i < 2; i++) {
+      const ang = this.heliA + this.t * 0.32 + i * Math.PI * 0.85;
+      const rr = 85 + 10 * Math.sin(this.t * 0.2 + i);
+      L[2 + i * 2].obj.position.set(Math.cos(ang) * rr, 22 + i * 6 + Math.sin(this.t * 0.5 + i) * 3, Math.sin(ang) * rr);
+      L[3 + i * 2].obj.position.copy(L[2 + i * 2].obj.position).y -= 0.8;
+    }
+    // Radiation.
+    const rate = Math.pow(clamp(1 - d / 80, 0, 1), 1.5) * (0.03 + 0.14 * this.flame);
+    if (rate > 0) mgr.rad += rate * dt;
+    else mgr.rad = Math.max(0, mgr.rad - dt * 0.01);
+    if (rate > 0 && Math.random() < (3 + rate * 600) * dt) bus.emit('sfx', 'geiger');
+    if (mgr.rad > 0.04) mgr.danger = { label: 'RADIATION', level: clamp(mgr.rad, 0, 1) };
+    if (mgr.rad >= 1) {
+      mgr.rad = 0;
+      this.done = true;
+      mgr.game.hospital();
+    }
+  }
+
+  lightLevel(L, i) {
+    const vis = 0.5 + this.mgr.world.sky.night * 0.6;
+    if (L.role === 'core') return (1.1 + this.flame * 0.6) * vis;
+    if (L.role === 'flame') return this.flame * 1.6;
+    if (this.cur === 'arrive' && this.si === 0 && this.segT < 6) return 0;
+    if (L.role === 'heliR') return (this.t * 1.2 + i) % 1 < 0.5 ? 0.9 * vis : 0.05;
+    return (this.t * 0.9 + i * 0.37) % 1 < 0.06 ? 2.2 : 0;
+  }
+}
+
 export class UFOManager {
   constructor(game) {
     this.game = game;
+    this.danger = null; // { label, level } for the HUD when something is after you
+    this.rad = 0; // radiation dose near the diamond (1 = hospital)
     this.world = game.world;
     this.player = game.player;
     this.camera = game.camera;
     this.current = null;
     this.lastAbs = null;
-    this.models = { saucer: buildSaucer(), cigar: buildCigar(), triangle: buildTriangle(), sphere: buildSphere(), vee: buildV(), dots: buildDots(5), k1947: build1947(), phoenix: buildPhoenix(), orbs: buildOrbs(4), star: buildStar(), tictac: buildTicTac(), ring: buildRing(), cloudship: buildCloudship(), beam: buildBeamCraft() };
+    this.models = { saucer: buildSaucer(), cigar: buildCigar(), triangle: buildTriangle(), sphere: buildSphere(), vee: buildV(), dots: buildDots(5), k1947: build1947(), phoenix: buildPhoenix(), orbs: buildOrbs(4), star: buildStar(), tictac: buildTicTac(), ring: buildRing(), cloudship: buildCloudship(), beam: buildBeamCraft(), ghost: buildGhost(3), fireball: buildFireball(), cube: buildCube(), hunter: buildHunter(), egg: buildEgg(), diamond: buildDiamond() };
     // Live reflections for the chrome sphere.
     this.cubeRT = new THREE.WebGLCubeRenderTarget(96);
     this.cubeCam = new THREE.CubeCamera(1, 1500, this.cubeRT);
@@ -1057,7 +1515,9 @@ export class UFOManager {
     const night = hour >= 20.6 || hour < 5;
     const twilight = !night && (hour >= 18 || hour < 7);
     if (this.state.day >= 1 && rng.chance(LEGEND_CHANCE)) return night ? 'phoenix' : 'k1947';
-    const odds = ODDS[night ? 'night' : twilight ? 'twilight' : 'day'];
+    let odds = ODDS[night ? 'night' : twilight ? 'twilight' : 'day'];
+    // Nothing dangerous on your first day in town.
+    if (this.state.day < 1) odds = Object.fromEntries(Object.entries(odds).filter(([k]) => !UFO_TYPES[k].danger));
     const total = Object.values(odds).reduce((a, b) => a + b, 0);
     let r = rng.float(0, total);
     for (const [type, w] of Object.entries(odds)) {
@@ -1096,7 +1556,8 @@ export class UFOManager {
     const rng = new RNG(Math.floor(Math.random() * 1e9));
     const night = this.world.sky.night > 0.5;
     const model = this.models[type];
-    const C = { saucer: Saucer, cigar: Cigar, triangle: Triangle, sphere: Sphere, vee: Vee, dots: Dots, k1947: K1947, phoenix: Phoenix, orbs: Orbs, star: Star, tictac: TicTac, ring: Ring, cloudship: Cloudship, beam: Beam }[type];
+    const C = { saucer: Saucer, cigar: Cigar, triangle: Triangle, sphere: Sphere, vee: Vee, dots: Dots, k1947: K1947, phoenix: Phoenix, orbs: Orbs, star: Star, tictac: TicTac, ring: Ring, cloudship: Cloudship, beam: Beam, ghost: Ghost, fireball: Fireball, cube: Cube, hunter: Hunter, egg: Egg, diamond: Diamond }[type];
+    this.rad = 0;
     this.current = new C(this, model, rng, { night, near, at });
     S.ufo.n += 1;
     this.current.sightingId = `${type}-d${S.day}-${S.ufo.n}`;
@@ -1119,7 +1580,7 @@ export class UFOManager {
     const dir = a < 30 ? 'straight ahead of you' : a < 70 ? `ahead, off to your ${side}` : a < 115 ? `off to your ${side}` : a < 150 ? `behind you, to the ${side}` : 'right behind you';
     const d = Math.hypot(dx, dz);
     const far = d < 120 ? 'close' : d < 300 ? 'a few blocks out' : 'way out past town';
-    const what = { dots: 'moving lights', orbs: 'orange lights', star: 'a star that moves', phoenix: 'a big formation of lights', cloudship: 'a strange cloud', beam: 'a light shining down' }[c.type] || 'an object in the sky';
+    const what = { dots: 'moving lights', orbs: 'orange lights', star: 'a star that moves', phoenix: 'a big formation of lights', cloudship: 'a strange cloud', beam: 'a light shining down', ghost: 'lights out in a field', fireball: 'a green meteor', hunter: 'a red light with a searchlight. Units advise residents to stay indoors', egg: 'a glowing object on the road and a power outage', diamond: 'a fire in the sky. Units responding. Do not approach' }[c.type] || 'an object in the sky';
     bus.emit('sfx', 'beep');
     bus.emit('toast', `SCANNER: "...caller reporting ${what}..." From the address, that's ${dir}, ${far}.`);
   }
@@ -1145,6 +1606,14 @@ export class UFOManager {
     else if (c.type === 'ring') msg = 'A wheel of colored lights is coming down out of the sky.';
     else if (c.type === 'cloudship') msg = "A strange, perfectly smooth cloud has formed over town. It isn't moving with the others.";
     else if (c.type === 'beam') msg = 'A beam of light is touching down somewhere past the houses. Toward the corn.';
+    else if (c.type === 'ghost') {
+      if (Math.random() < 0.4) return;
+      msg = 'Out over the field, a soft light is sitting just above the ground. Then there are two.';
+    } else if (c.type === 'fireball') msg = 'The whole sky flashes green for a second. LOOK UP.';
+    else if (c.type === 'cube') msg = "Something small and dark is hanging in the sky. It hasn't moved at all.";
+    else if (c.type === 'hunter') msg = 'A red light is moving slowly over the rooftops, sweeping a thin beam over the yards. Like it is looking for something.';
+    else if (c.type === 'egg') msg = 'Every light on the street flickers. Something huge and glowing is coming in low.';
+    else if (c.type === 'diamond') msg = 'A roar like a blowtorch, and the sky over the road lights up orange. Helicopters, too. Lots of them.';
     else if (c.type === 'k1947') msg = 'Something flashes in the sky, like sun off a mirror. Then again. Then again.';
     else if (c.type === 'phoenix') msg = 'The whole block has gone silent. Up and down the street, people are stepping out onto their lawns.';
     else {
@@ -1247,6 +1716,13 @@ export class UFOManager {
         const a = (k / 3) * Math.PI * 2;
         set(k, L.x + Math.cos(a) * 6, 0.6, L.z + Math.sin(a) * 6, '#f0f4ff', 0.6, 0.6);
       }
+    } else if (vis === 'redlamp') {
+      set(0, L.x, 0.5, L.z, '#ff2a1a', 1.3, 0.9 + Math.random() * 0.15);
+    } else if (vis === 'sparks') {
+      set(0, L.x, 0.4, L.z, '#bfe0ff', 1.1, Math.random() < 0.25 ? 1.5 + Math.random() : 0.05);
+    } else if (vis === 'fire') {
+      set(0, L.x, 0.9, L.z, '#ff8a2a', 3.2, 1 + Math.random() * 0.5);
+      set(1, L.x, 1.8 + Math.random() * 0.4, L.z, '#ffc060', 1.6, 0.8 + Math.random() * 0.5);
     } else if (vis === 'balloon') {
       set(0, L.x, 2 + Math.min(t, 120) * 3, L.z, '#ffffff', 2.5, (0.3 + this.world.sky.daylight * 0.8) * (t < 120 ? 1 : 0));
     }
@@ -1360,6 +1836,7 @@ export class UFOManager {
     this._updateLure(abs);
     this._updateCrop();
 
+    this.danger = null;
     if (this.current) {
       const c = this.current;
       c.update(dt, this);
@@ -1399,8 +1876,26 @@ export class UFOManager {
     this.current.dispose();
     this.current = null;
     this.world.disturb = null;
+    this.world.blackout = null;
+    this.danger = null;
+    this.rad = 0;
     bus.emit('ufoAudio', { kind: null, level: 0 });
     this._schedule(this.state.day * 24 + this.state.hour, 3.5, 8);
+  }
+
+  // Is the power out here? (The Levelland egg kills everything electric.)
+  powerOut(p) {
+    const B = this.world.blackout;
+    return !!B && Math.hypot(p.x - B.x, p.z - B.z) < B.r;
+  }
+
+  // The player went inside. Whatever was hunting them loses the trail.
+  onIndoors() {
+    const c = this.current;
+    if (c?.type === 'hunter' && (c.mode === 'hunt' || c.mode === 'notice')) {
+      this.end();
+      setTimeout(() => bus.emit('toast', 'Through the curtains, you watch the red light hang over the street for a long, long time. Then it is gone.'), 600);
+    }
   }
 
   // Lamps flicker under it; saucers warble, triangles hum.
@@ -1408,6 +1903,7 @@ export class UFOManager {
     const d = c.pos.distanceTo(this.camera.position);
     const fx = FX[c.type];
     this.world.disturb = fx.disturb && c.pos.y < 140 ? { x: c.pos.x, z: c.pos.z, r: 70 } : null;
+    this.world.blackout = c.type === 'egg' && c.pos.y < 90 ? { x: c.pos.x, z: c.pos.z, r: 190 } : null;
     const near = clamp(1 - d / (c.type === 'triangle' ? 420 : 320), 0, 1) * c.alpha;
     bus.emit('ufoAudio', { kind: fx.audio, level: fx.audio ? near : 0, hush: fx.hush && near > 0.05 });
   }

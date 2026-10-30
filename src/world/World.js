@@ -200,6 +200,12 @@ export class World {
     for (const b of this.radioTower.beacons) this.glows.set(b, blinkR * (0.6 + night * 0.8));
   }
 
+  // Inside a power outage?
+  dark(x, z) {
+    const B = this.blackout;
+    return !!B && Math.hypot(x - B.x, z - B.z) < B.r;
+  }
+
   _awake(h, hour) {
     const t = hour < 5 ? hour + 24 : hour;
     return t >= h.wake && t < h.bed;
@@ -210,7 +216,8 @@ export class World {
     const glass = this._c.copy(DAY_GLASS).multiplyScalar(0.12 + 0.88 * (1 - night));
     for (const h of this.houses) {
       const awake = this._awake(h, hour);
-      const home = dark && (awake || h.nightOwl);
+      const out = this.dark(h.lot.ox, h.lot.oz);
+      const home = dark && !out && (awake || h.nightOwl);
       for (const w of h.windows) {
         if (w.tv) continue;
         const r = hash(w.idx, dayIndex);
@@ -220,7 +227,7 @@ export class World {
           this.windows.set(w.idx, 0, this._tmp().copy(warm).multiplyScalar(0.75 + w.r * 0.5));
         } else this.windows.set(w.idx, 0, glass);
       }
-      const porchOn = dark && (awake || hash(h.index, 7) < 0.4 || h.isPlayer);
+      const porchOn = dark && !out && (awake || hash(h.index, 7) < 0.4 || h.isPlayer);
       this.glows.set(h.porchGlow, porchOn ? 1 : 0);
       this.pools.set(h.porchPool, porchOn ? 0.45 : 0);
       for (const g of h.pumpkinGlows) this.glows.set(g, dark && awake ? 0.8 + Math.random() * 0.3 : 0);
@@ -250,7 +257,7 @@ export class World {
     for (const h of this.houses) {
       for (const w of h.windows) {
         if (!w.tv) continue;
-        const on = this._awake(h, hour) && hash(h.index, dayIndex, 3) < 0.75;
+        const on = this._awake(h, hour) && hash(h.index, dayIndex, 3) < 0.75 && !this.dark(h.lot.ox, h.lot.oz);
         if (!on) {
           this.windows.set(w.idx, 0, this._c.copy(DAY_GLASS).multiplyScalar(0.12));
           continue;
@@ -275,6 +282,7 @@ export class World {
         const f = hash(Math.floor(time * 14), l.phase * 77);
         on = f < 0.35 ? 0.05 : f < 0.55 ? 0.4 : 1;
       }
+      if (this.dark(l.pos.x, l.pos.z)) on = 0;
       l.on = on;
       this.glows.set(l.glow, on);
       this.pools.set(l.pool, on * 0.55);

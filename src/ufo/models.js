@@ -328,3 +328,88 @@ export function buildBeamCraft() {
   lights.push(marker(body, 0, -1.9, 0, '#e8f4ff', 10, 'lamp'));
   return { group, body, beam, beamMat, lights, materials: [dark] };
 }
+
+// COMMON: ghost lights. Soft yellow-white balls (cores + halos), low down.
+export function buildGhost(n = 3) {
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  group.add(body);
+  const lights = [];
+  for (let i = 0; i < n; i++) lights.push(marker(body, 0, 0, 0, '#fff4c4', 4.2, 'core'));
+  for (let i = 0; i < n; i++) lights.push(marker(body, 0, 0, 0, '#ffd27a', 13, 'halo'));
+  return { group, body, lights, materials: [] };
+}
+
+// UNCOMMON: green fireball. A blazing core, a big halo and a short trail.
+export const FIREBALL_TRAIL = 7;
+export function buildFireball() {
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  group.add(body);
+  const lights = [marker(body, 0, 0, 0, '#d8ffdc', 6, 'core'), marker(body, 0, 0, 0, '#3cff6e', 30, 'halo')];
+  for (let i = 0; i < FIREBALL_TRAIL; i++) lights.push(marker(body, 0, 0, 0, '#5aff7a', 7 - i * 0.7, 'trail'));
+  return { group, body, lights, materials: [] };
+}
+
+// RARE: a dark cube inside a clear sphere.
+export function buildCube() {
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  group.add(body);
+  const shell = new THREE.MeshPhongMaterial({ color: '#dfe4ec', specular: '#ffffff', shininess: 90, transparent: true, opacity: 0.25, depthWrite: false, fog: false });
+  const dark = psx(new THREE.MeshPhongMaterial({ color: '#16171c', specular: '#50505a', shininess: 30, transparent: true, fog: false }));
+  const cube = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.9, 1.9), dark);
+  body.add(cube);
+  body.add(new THREE.Mesh(new THREE.SphereGeometry(2.3, 24, 16), shell));
+  body.scale.setScalar(1.45);
+  return { group, body, cube, lights: [marker(body, 0, 0, 0, '#eef3fb', 6, 'aura')], materials: [shell, dark] };
+}
+
+// RARE, DANGEROUS: the Hunter. A red ball of light with a faint searchlight.
+export function buildHunter() {
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  group.add(body);
+  const core = new THREE.MeshBasicMaterial({ color: '#ff4a30', fog: false, transparent: true });
+  body.add(new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 12), core));
+  const beamMat = new THREE.MeshBasicMaterial({ color: '#ff2a18', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, side: THREE.DoubleSide });
+  const beam = new THREE.Mesh(new THREE.ConeGeometry(1, 1, 20, 1, true).translate(0, -0.5, 0), beamMat);
+  group.add(beam);
+  const lights = [marker(body, 0, 0, 0, '#ff3a22', 4.5, 'core'), marker(body, 0, 0, 0, '#ff160a', 17, 'halo'), marker(group, 0, 0, 0, '#ff3a22', 6, 'spot')];
+  return { group, body, beam, beamMat, lights, materials: [core] };
+}
+
+// EPIC: the Levelland egg. A house-sized glowing ellipsoid.
+export function buildEgg() {
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  group.add(body);
+  const glow = new THREE.MeshBasicMaterial({ color: '#ffb04a', fog: false, transparent: true });
+  const shell = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 16), glow);
+  shell.scale.set(7, 2.8, 2.8);
+  body.add(shell);
+  const lights = [marker(body, 0, 0, 0, '#ffc070', 46, 'halo'), marker(body, 4.5, 0, 0, '#fff0d0', 14, 'end'), marker(body, -4.5, 0, 0, '#fff0d0', 14, 'end'), marker(body, 0, -3.5, 0, '#ffd090', 30, 'ground')];
+  return { group, body, lights, materials: [glow] };
+}
+
+// EPIC, DANGEROUS: the diamond, with flame jetting from its underside and a
+// pair of helicopters (just their lights) circling it.
+export function buildDiamond() {
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  group.add(body);
+  const hot = new THREE.MeshBasicMaterial({ color: '#fff0d4', fog: false, transparent: true });
+  const gem = new THREE.Mesh(new THREE.OctahedronGeometry(1, 0), hot);
+  gem.scale.set(6.5, 10, 6.5);
+  body.add(gem);
+  const flameMat = new THREE.MeshBasicMaterial({ color: '#ff8a2a', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, side: THREE.DoubleSide });
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(1, 1, 18, 1, true).rotateX(Math.PI).translate(0, -0.5, 0), flameMat);
+  flame.position.y = -9.5;
+  group.add(flame);
+  const lights = [marker(body, 0, 0, 0, '#fff2d0', 48, 'core'), marker(group, 0, -12, 0, '#ff8a2a', 26, 'flame')];
+  for (let i = 0; i < 2; i++) {
+    lights.push(marker(group, 0, 0, 0, '#ff2a1a', 2.2, 'heliR'));
+    lights.push(marker(group, 0, 0, 0, '#ffffff', 2.6, 'heliW'));
+  }
+  return { group, body, flame, flameMat, lights, materials: [hot] };
+}

@@ -27,7 +27,7 @@ save. The game appears at `https://<user>.github.io/ufo-games/` a minute or two 
 `package.json`, bump the version in the import map too.)
 
 Add `?debug` (or `#debug`) to the URL for dev keys: `[` / `]` change the hour, `\` toggles
-30x time, **1–8 spawn a saucer / cigar / triangle / sphere / V / dots / '47 / Phoenix nearby, N cycles through every type**, F8 gives one of every lure, F9 spawns a glowing test
+30x time, **1–8 spawn a saucer / cigar / triangle / sphere / V / dots / '47 / Phoenix nearby, N cycles through every type (all 20)**, F8 gives one of every lure, F9 spawns a glowing test
 orb, and F10 adds $500.
 
 ## Controls
@@ -149,11 +149,25 @@ epic or legend. Odds depend on the time of day.
 | Type | Tier | When | How it moves | Base value |
 | --- | --- | --- | --- | --- |
 | **Orange orbs** | Common | Dusk, night | 2–4 fire-orange lights rise from behind the trees and drift downwind in a loose line, flickering, then burn out one at a time. | $55 |
+| **Ghost lights** | Common | Dusk, night | Soft yellow balls just above the corn, the west field or the park (like the Marfa and Hessdalen lights). They pulse and wander, split into three and circle each other, merge again and wink out. | $60 |
+| **Green fireball** | Uncommon | Dusk, night | A brilliant green ball crosses the sky far too flat and steady for a meteor (New Mexico, 1948–51), with a short trail. Sometimes it stops dead for a few seconds. Then it bursts. It's over in seconds, so pan with it. | $200 |
+| **Cube in a sphere** | Rare | Day, dusk | A dark, slowly tumbling cube inside a clear shell (the 2014–15 Navy pilot reports). Holds perfectly still for minutes, jumps sideways instantly now and then, then goes straight up. Small: bring zoom. | $360 |
 | **Moving star** | Common | Night | A star-like point crosses the sky in a straight line, stops dead, turns sharply and accelerates away. | $45 |
 | **Tic Tac** | Rare | Day, dusk | White featureless capsule over the fields. Holds dead still with a faint tremble, then jumps 10–35 m in a fraction of a second, over and over. Leaves by vanishing sideways. | $380 |
 | **Ring of lights** | Rare | Dusk, night | A wheel of red, green and white lights sinks slowly out of the sky, spins faster and faster, tilts its face toward you, flashes once and shoots straight up. | $420 |
 | **The Cloud Ship** | Epic | Any time | A perfectly smooth lenticular cloud forms over town and doesn't drift. A colossal dark hull pokes out of it, light flickers inside, and three scout orbs drop out, buzz around the neighborhood and return. Then the cloud dissolves. | $950 |
 | **The Harvester** | Epic | Night | A dark lens comes in low over the corn and shines a beam straight down for half a minute. Afterwards, the corn underneath is flattened into a **crop circle** that stays for three days and can be photographed ($160). | $850 |
+
+### Dangerous craft
+
+Three craft can hurt you. None of them show up on your first day. A red warning and red screen
+edges appear when one is close to getting you.
+
+| Type | Tier | When | What it does | Base value |
+| --- | --- | --- | --- | --- |
+| **The Hunter** | Rare | Night | A red light sweeps the yards with a thin red beam, looking for something. Standing near it in the open makes it notice you; a flashlight makes it notice faster; **firing a flash at it gets its attention instantly**. (Hiding in the corn helps.) Once it has you, it drops to head height and follows you, slightly faster than you walk. **Get indoors** (your house or the Qwik Stop) or outlast it for 40 seconds. If it reaches you, you get **missing time**: you wake up in the corn about 3 hours later, your film pulled out of the camera, and your last 3 unsold photos turned to static. | $520 |
+| **The Levelland Egg** | Epic | Night | A house-sized glowing egg sets down on a road (Levelland, Texas, 1957). **Within ~190 m all power dies**: streetlights, porch lights, windows, your flashlight and flash, and any camera with a battery in it. Only the all-mechanical K-1 SLR still works. Walk right up to it and static builds until it blasts off, **fogging your film**. | $780 |
+| **The Diamond** | Epic | Night | A blazing diamond hangs low over a road (Cash-Landrum, Texas, 1980), roaring flame from its underside every few seconds while two helicopters circle it. A Geiger counter clicks when you're near; **radiation builds within ~80 m**, much faster during the flame bursts. Too much and you wake up in **hospital** the next morning with a $220+ bill. | $1000 |
 
 ### Legends
 
@@ -187,6 +201,9 @@ They're defined in `src/game/lures.js`.
 | Road flares (3-pack) | $90 | The Phoenix Lights (legend) | Night, open | 60% |
 | Surveyor stakes & twine | $160 | The Harvester | Night, **in the corn** | 55% |
 | Surplus weather balloon | $180 | The Cloud Ship | Any time, open | 55% |
+| Red railroad lantern | $110 | The Hunter (dangerous) | Night, open | 65% |
+| Car battery & jumper cables | $140 | The Levelland Egg (dangerous) | Night, open | 55% |
+| Oil-drum bonfire kit | $200 | The Diamond (dangerous) | Night, open | 50% |
 
 Photo grading is pan-aware: tracking a fast mover with the camera cancels out its motion blur.
 

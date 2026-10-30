@@ -250,6 +250,17 @@ export class Audio {
           }
         }
         break;
+      case 'geiger':
+        this._noiseBurst({ dur: 0.004, type: 'highpass', freq: 3000, peak: 0.25 });
+        break;
+      case 'roar':
+        this._noiseBurst({ dur: 1.8, type: 'lowpass', freq: 260, peak: 0.35, attack: 0.15, dest: this.amb });
+        this._noiseBurst({ dur: 1.6, type: 'bandpass', freq: 900, q: 0.6, peak: 0.08, attack: 0.1, dest: this.amb });
+        break;
+      case 'zap':
+        this._noiseBurst({ dur: 0.5, type: 'highpass', freq: 1800, peak: 0.2, attack: 0.01 });
+        this._tone({ freq: 90, freq2: 40, dur: 0.6, type: 'sawtooth', peak: 0.06 });
+        break;
       case 'package':
         this._noiseBurst({ dur: 0.2, type: 'bandpass', freq: 600, peak: 0.15 });
         break;
@@ -294,8 +305,23 @@ export class Audio {
       this.ufoOsc2.frequency.setTargetAtTime(66.5, t, 0.2);
       this.ufoLfo.frequency.setTargetAtTime(0.4, t, 0.2);
       this.ufoLfoGain.gain.setTargetAtTime(2, t, 0.2);
+    } else if (kind === 'hunter') {
+      this.ufoOsc.frequency.setTargetAtTime(176, t, 0.2);
+      this.ufoOsc2.frequency.setTargetAtTime(178.5, t, 0.2);
+      this.ufoLfo.frequency.setTargetAtTime(0.25, t, 0.2);
+      this.ufoLfoGain.gain.setTargetAtTime(6, t, 0.2);
+    } else if (kind === 'egg') {
+      this.ufoOsc.frequency.setTargetAtTime(60, t, 0.2);
+      this.ufoOsc2.frequency.setTargetAtTime(120.5, t, 0.2);
+      this.ufoLfo.frequency.setTargetAtTime(9, t, 0.2);
+      this.ufoLfoGain.gain.setTargetAtTime(5, t, 0.2);
+    } else if (kind === 'diamond') {
+      this.ufoOsc.frequency.setTargetAtTime(34, t, 0.2);
+      this.ufoOsc2.frequency.setTargetAtTime(51, t, 0.2);
+      this.ufoLfo.frequency.setTargetAtTime(1.3, t, 0.2);
+      this.ufoLfoGain.gain.setTargetAtTime(3, t, 0.2);
     }
-    const peak = kind === 'triangle' ? 0.16 : 0.035;
+    const peak = { triangle: 0.16, egg: 0.08, diamond: 0.2, hunter: 0.05 }[kind] || 0.035;
     this.ufoGain.gain.setTargetAtTime(kind ? level * level * peak : 0, t, 0.4);
   }
 

@@ -247,10 +247,11 @@ export class PhotoCamera {
     this.vmMat.color.set(this.spec.color);
 
     // Flashlight.
-    this.torch.intensity = this.flashlightOn ? 70 : 0;
+    this.powerOut = !!this.game.ufos?.powerOut(this.player.pos);
+    this.torch.intensity = this.flashlightOn && !this.powerOut ? 70 : 0;
 
     // Rough shutter estimate for the viewfinder readout.
-    const light = this.world.sky.lightLevel * (this.flashlightOn ? 1.4 : 1);
+    const light = this.world.sky.lightLevel * (this.flashlightOn && !this.powerOut ? 1.4 : 1);
     const needed = 0.16 / Math.max(light, 0.002);
     const want = ((1 / 250) * needed) / (this.film.iso / 400);
     this.lastShutterEstimate = clamp(want, 1 / 1000, this.maxShutter);
@@ -271,6 +272,7 @@ export class PhotoCamera {
 
   _flashWouldFire() {
     const m = this.state.flashMode;
+    if (this.powerOut) return false;
     if (m === 'off') return false;
     if (m === 'on') return true;
     return this.world.sky.lightLevel < 0.03;
@@ -283,6 +285,14 @@ export class PhotoCamera {
   shoot() {
     const S = this.state;
     if (!this.ready) return;
+    if (this.powerOut && S.camera !== 'slr') {
+      bus.emit('sfx', 'dryfire');
+      if (!(this._deadToast > performance.now())) {
+        this._deadToast = performance.now() + 4000;
+        bus.emit('toast', "Your camera's dead. Not even the battery light. (Only an all-mechanical camera like the K-1 works in here.)");
+      }
+      return;
+    }
     if (S.film.remaining <= 0) {
       bus.emit('sfx', 'dryfire');
       const total = Object.values(S.rolls).reduce((a, b) => a + b, 0);

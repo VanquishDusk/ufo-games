@@ -27,6 +27,13 @@ export class HUD {
     this.filmEl = $('#status .film');
     this.gearEl = $('#status .gear');
     this.promptEl = $('#prompt');
+    // Warning when something dangerous is close: red edges + a label.
+    this.vignette = document.createElement('div');
+    this.vignette.id = 'danger-vignette';
+    this.dangerEl = document.createElement('div');
+    this.dangerEl.id = 'danger';
+    this.dangerEl.className = 'osd';
+    this.el.append(this.vignette, this.dangerEl);
     this.toastsEl = $('#toasts');
     this.hintsEl = $('#hints');
     this.crossEl = $('#crosshair');
@@ -95,6 +102,9 @@ export class HUD {
     const film = FILM[S.film.type];
     const filmTxt = `FILM <span class="${S.film.remaining <= 3 ? 'warn' : ''}">${S.film.remaining}</span> &middot; ${film.short}${spare ? ` &middot; +${spare} ROLL${spare > 1 ? 'S' : ''}` : ''}`;
     this._set(this.filmEl, 'film', filmTxt);
+    const D = g.ufos?.danger;
+    this.vignette.style.opacity = D ? (0.25 + 0.75 * D.level).toFixed(2) : '0';
+    this._set(this.dangerEl, 'danger', D ? `${D.label} <span class="bar">${bar(D.level, 10)}</span>` : '');
     const chips = [];
     if (S.gear.flashlight) chips.push(`<span class="chip ${pc.flashlightOn ? '' : 'off'}">F TORCH</span>`);
     if (S.gear.binoculars) chips.push(`<span class="chip ${pc.binoculars ? '' : 'off'}">B BINO</span>`);

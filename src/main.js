@@ -21,6 +21,7 @@ import { newGameState, loadState, saveState, clearState, loadSettings, saveSetti
 import { appraise, completeSale } from './game/economy.js';
 import { itemById, FILM } from './game/items.js';
 import { LURES } from './game/lures.js';
+import { ZONES } from './world/layout.js';
 import { refillJobs, logPhoto, morningTick, heatLabel } from './game/career.js';
 import { formatClock, GAME_MINUTES_PER_SECOND } from './game/clock.js';
 
@@ -373,6 +374,65 @@ class Game {
     }, 1400);
   }
 
+  // Black out, lose some hours, wake up somewhere else. Used by the dangerous
+  // craft; `then` runs after the time has passed.
+  _blackout(text, ms, then) {
+    const fade = document.getElementById('fade');
+    fade.textContent = text;
+    fade.classList.add('on');
+    this.mode = 'sleeping';
+    this.photoCam.reset();
+    this.hud.toastsEl.replaceChildren();
+    this.audio.sfx('zap');
+    setTimeout(() => {
+      then();
+      this.save();
+      this.mode = 'play';
+      fade.classList.remove('on');
+    }, ms);
+  }
+
+  // The Hunter caught you.
+  missingTime() {
+    const S = this.state;
+    this._blackout('', 2600, () => {
+      const lost = 2.5 + Math.random() * 1.5;
+      this.advanceHours(lost);
+      const r = ZONES.corn;
+      this.player.place(new THREE.Vector3(r[0] + 15 + Math.random() * (r[2] - r[0] - 30), 0, r[1] + 15 + Math.random() * (r[3] - r[1] - 30)), Math.random() * Math.PI * 2);
+      const ruined = S.film.remaining > 0;
+      S.film.remaining = 0;
+      const gone = this.photos.filter((p) => !p.sold).slice(-3);
+      for (const p of gone) this.deletePhoto(p);
+      S.stats.abductions = (S.stats.abductions || 0) + 1;
+      const lines = [`You're standing in the middle of the corn. Your watch says ${formatClock(S.hour)}. You don't remember the last ${Math.round(lost)} hours.`];
+      if (ruined) lines.push('The back of your camera is open. The film has been pulled out.');
+      if (gone.length) lines.push(`Your last ${gone.length === 1 ? 'photo is' : `${gone.length} photos are`} just static now.`);
+      lines.forEach((l, i) => setTimeout(() => this.hud.toast(l, 6500), 400 + i * 2200));
+      if (!S.flags.missingMail) {
+        S.flags.missingMail = true;
+        S.inbox.push({ id: 'missing', day: S.day, from: 'LENNY <lenny@greyzone.bbs>', subject: 'MISSING TIME??', body: "ok dont freak out. u posted on the board at like 4am and it was just the letter R typed 900 times.\n\nthe red one. it got u didnt it. the guys who've been through it say same thing every time: red light, beam, then they wake up somewhere with their film pulled.\n\nit doesnt seem to go INSIDE. if it locks on, get to ur house or the qwik stop. and DONT flash it. and dont wave a flashlight around near it.\n\nbut dude... if u ever got a close up of that thing. KCHV would lose their minds.\n- L", read: false });
+      }
+    });
+  }
+
+  // Too long near the diamond.
+  hospital() {
+    const S = this.state;
+    this._blackout('', 2600, () => {
+      let hours = (34 - S.hour) % 24;
+      if (hours < 6) hours += 24;
+      this.advanceHours(hours);
+      const bill = 220 + Math.round(Math.max(0, S.money) * 0.15);
+      S.money -= bill;
+      S.stats.hospital = (S.stats.hospital || 0) + 1;
+      const sp = this.world.spawn;
+      this.player.place(sp.pos, sp.yaw);
+      S.inbox.push({ id: `hospital-${S.day}-${S.inbox.length}`, day: S.day, from: 'CEDAR HOLLOW GENERAL HOSPITAL', subject: `Statement: $${bill}.00`, body: `Patient was brought in by a passing motorist, disoriented, with first-degree burns to the face and hands, nausea and hair loss consistent with acute exposure to an unknown source.\n\nTreated and released at 9:40 AM.\n\nEmergency services ......... $${bill}.00\n\nThe Department of Public Safety has asked us to remind you that there was no fire on the county road last night.` , read: false });
+      this.hud.toast(`You wake up in a hospital bed. Your face is sunburned and your hair comes out in your hands. They drive you home. Bill: $${bill}.`, 7000);
+    });
+  }
+
   leaveHome() {
     this.audio.sfx('door');
     const sp = this.world.spawn;
@@ -384,12 +444,14 @@ class Game {
     const S = this.state;
     switch (it.type) {
       case 'home':
+        this.ufos.onIndoors();
         this.audio.sfx('door');
         this.photoCam.reset();
         this.save();
         this.openMenu('home');
         break;
       case 'store':
+        this.ufos.onIndoors();
         this.audio.sfx('bell');
         this.openMenu('store');
         break;
@@ -460,7 +522,7 @@ class Game {
     if (input.keysPressed.has('F10')) this.state.money += 500;
     if (input.keysPressed.has('KeyN')) {
       // Cycle through every type.
-      const all = ['dots', 'orbs', 'star', 'saucer', 'cigar', 'triangle', 'vee', 'sphere', 'tictac', 'ring', 'cloudship', 'beam', 'k1947', 'phoenix'];
+      const all = ['dots', 'orbs', 'star', 'saucer', 'cigar', 'triangle', 'vee', 'sphere', 'tictac', 'ring', 'cloudship', 'beam', 'ghost', 'fireball', 'cube', 'hunter', 'egg', 'diamond', 'k1947', 'phoenix'];
       this._dbgType = ((this._dbgType ?? -1) + 1) % all.length;
       this.ufos.spawn(all[this._dbgType], true);
       this.hud.toast(`[debug] ${all[this._dbgType]} spawned nearby.`);

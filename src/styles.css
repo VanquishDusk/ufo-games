@@ -1127,3 +1127,23 @@ body {
   color: #ff5a4a;
   border-color: #ff5a4a;
 }
+#danger-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(200, 20, 10, 0.55) 100%);
+  transition: opacity 0.3s;
+}
+#danger {
+  position: absolute;
+  top: 92px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #ff4a3a;
+  font-size: 28px;
+  width: max-content;
+  max-width: 92vw;
+  text-align: center;
+  animation: blink 0.9s steps(1) infinite;
+}
