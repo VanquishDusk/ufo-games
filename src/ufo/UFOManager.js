@@ -498,7 +498,7 @@ class Dots extends Craft {
     if (i >= this.count) return 0;
     const n = this.mgr.world.sky.night;
     const twinkle = 0.85 + 0.15 * Math.sin(this.t * 9 + i * 2.1);
-    return twinkle * (0.12 + n * 1.1);
+    return twinkle * (0.2 + n * 1.7);
   }
 }
 

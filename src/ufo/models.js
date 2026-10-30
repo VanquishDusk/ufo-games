@@ -159,6 +159,6 @@ export function buildDots(n = 5) {
   const body = new THREE.Group();
   group.add(body);
   const lights = [];
-  for (let i = 0; i < n; i++) lights.push(marker(body, 0, 0, 0, '#f6f8ff', 3.2, 'dot'));
+  for (let i = 0; i < n; i++) lights.push(marker(body, 0, 0, 0, '#f6f8ff', 5, 'dot'));
   return { group, body, lights, materials: [] };
 }
