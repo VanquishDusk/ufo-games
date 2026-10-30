@@ -72,6 +72,13 @@ export class GlowField {
     return i;
   }
 
+  // Re-purpose a slot (pooled lights for moving craft).
+  restyle(i, color, size) {
+    this.base[i].set(color);
+    this.size[i] = size;
+    this.geometry.attributes.size.needsUpdate = true;
+  }
+
   move(i, p) {
     this.pos.set([p.x, p.y, p.z], i * 3);
     this.geometry.attributes.position.needsUpdate = true;

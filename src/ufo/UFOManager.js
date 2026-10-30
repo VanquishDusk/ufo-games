@@ -63,7 +63,10 @@ class Craft {
     this.group.visible = true;
     this.group.rotation.set(0, 0, 0);
     this.model.body.rotation.set(0, 0, 0);
-    this.lightIdx = model.lights.map((_, i) => mgr.glowPool[i]);
+    this.lightIdx = model.lights.map((L, i) => {
+      mgr.world.glows.restyle(mgr.glowPool[i], L.color, L.size);
+      return mgr.glowPool[i];
+    });
   }
 
   seg(dur, fn, tag) {

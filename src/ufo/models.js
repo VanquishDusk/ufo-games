@@ -15,7 +15,7 @@ export function buildSaucer() {
   const group = new THREE.Group(); // position + tilt
   const body = new THREE.Group(); // slow spin
   group.add(body);
-  const silver = psx(new THREE.MeshPhongMaterial({ color: '#c6cad0', specular: '#ffffff', shininess: 70, side: THREE.DoubleSide, fog: false }));
+  const silver = psx(new THREE.MeshPhongMaterial({ color: '#c6cad0', specular: '#ffffff', shininess: 70, emissive: '#15171c', side: THREE.DoubleSide, fog: false }));
   const dark = psx(new THREE.MeshPhongMaterial({ color: '#1a1c20', specular: '#555', shininess: 40, fog: false }));
   const under = psx(new THREE.MeshPhongMaterial({ color: '#7a7e86', specular: '#999', shininess: 30, side: THREE.DoubleSide, fog: false }));
   const profile = [
