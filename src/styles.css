@@ -1055,7 +1055,7 @@ body {
     top: 12px;
     right: 50%;
     margin-right: -85px;
-    transform: translateY(-160%) rotate(3deg);
+    transform: translateY(calc(-100% - 40px)) rotate(3deg);
   }
   #preview.on {
     transform: translateY(0) rotate(-2deg);
