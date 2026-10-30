@@ -518,9 +518,9 @@ class K1947 extends Craft {
   constructor(mgr, model, rng, { at }) {
     super(mgr, 'k1947', model, rng);
     const p = at || mgr.player.pos;
-    const C = V(p.x + rng.float(-40, 40), rng.float(130, 185), p.z + rng.float(-40, 40));
-    const R = rng.float(110, 165);
-    const speed = rng.float(48, 62);
+    const C = V(p.x + rng.float(-30, 30), rng.float(95, 140), p.z + rng.float(-30, 30));
+    const R = rng.float(85, 130);
+    const speed = rng.float(42, 55);
     const w = (speed / R) * rng.sign();
     this.turn = Math.sign(w);
     const a0 = rng.float(0, Math.PI * 2);
