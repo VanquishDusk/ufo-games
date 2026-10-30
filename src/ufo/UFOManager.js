@@ -8,6 +8,9 @@
 //             stops dead for a while, then usually just winks out.
 //  triangle - night only. Huge, silent, slow. Cruises over town, stops,
 //             rotates in place, carries on (sometimes leaves in a hurry).
+//
+// The full roster (and rarity tiers) is in UFO_TYPES below; each type's
+// behavior is described on its class.
 import * as THREE from 'three';
 import { bus } from '../core/events.js';
 import { RNG, clamp, noise1 } from '../core/rng.js';
@@ -896,7 +899,12 @@ class Cloudship extends Craft {
   animate() {
     const m = this.model;
     this.group.rotation.set(0, this.yaw, 0);
-    m.cloudMats.forEach((cm, i) => (cm.opacity = this.cloud * (0.86 - i * 0.06)));
+    // Clouds seen from below would go black; light them with the sky instead.
+    const pal = this.mgr.world.sky.pal;
+    m.cloudMats.forEach((cm, i) => {
+      cm.opacity = this.cloud * (0.86 - i * 0.06);
+      cm.emissive.copy(pal.hor).lerp(pal.cloud, 0.5).multiplyScalar(0.55 + i * 0.06);
+    });
     m.materials[0].opacity = this.hullA;
     m.hull.visible = this.hullA > 0.01;
     this.scoutVis = [];
