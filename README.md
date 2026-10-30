@@ -17,6 +17,15 @@ npm run dev      # http://localhost:5173
 npm run build    # static build in dist/ (relative paths, works on any static host)
 ```
 
+### GitHub Pages
+
+The source runs as-is on a plain static host, no build needed: `index.html` uses an import
+map to load three.js from jsDelivr, and the stylesheet is a normal `<link>`. To publish, go to
+**Settings → Pages**, set **Source: Deploy from a branch**, pick this branch and `/ (root)`, and
+save. The game appears at `https://<user>.github.io/ufo-games/` a minute or two later.
+(`.nojekyll` stops Pages from running Jekyll over the files. If you bump three in
+`package.json`, bump the version in the import map too.)
+
 Add `?debug` (or `#debug`) to the URL for dev keys: `[` / `]` change the hour, `\` toggles
 30x time, **1 / 2 / 3 spawn a saucer / cigar / triangle nearby**, F9 spawns a glowing test
 orb, and F10 adds $500.

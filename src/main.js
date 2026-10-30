@@ -1,6 +1,5 @@
 // SKYWATCH '97 (working title): a 90s suburban UFO photography game.
 // This file wires the systems together and runs the main loop.
-import './styles.css';
 import * as THREE from 'three';
 import { Input } from './core/Input.js';
 import { PhotoStore } from './core/storage.js';
