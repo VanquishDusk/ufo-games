@@ -86,15 +86,23 @@ const VHS_FRAG = /* glsl */ `
     // Luma: soft, with the classic edge-enhancement halo.
     float Y = lumaAt(uv) * 0.5 + (lumaAt(uv + vec2(px, 0.0)) + lumaAt(uv - vec2(px, 0.0))) * 0.25;
     float Yb = (lumaAt(uv + vec2(3.0 * px, 0.0)) + lumaAt(uv - vec2(3.0 * px, 0.0))) * 0.5;
-    Y += (Y - Yb) * 0.55;
+    Y += (Y - Yb) * 0.7;
 
     // Chroma: smeared wide and dragged to the right.
     vec2 IQ = vec2(0.0);
     for (int i = -5; i <= 5; i++) {
-      IQ += toYIQ(texture2D(tA, uv + vec2((float(i) * 1.6 - 3.5) * px, 0.0)).rgb).yz;
+      IQ += toYIQ(texture2D(tA, uv + vec2((float(i) * 2.0 - 5.0) * px, 0.0)).rgb).yz;
     }
     IQ /= 11.0;
-    IQ *= 1.12;
+    IQ *= 1.15;
+
+    // Bright lights leave a smeared tail to the right (tape saturation).
+    float tail = 0.0;
+    for (int k = 1; k <= 8; k++) {
+      float L = lumaAt(uv - vec2(float(k) * 3.0 * px, 0.0));
+      tail += max(L - 0.62, 0.0) * (1.0 - float(k) / 9.0);
+    }
+    Y += tail * 0.22;
 
     vec3 col = toRGB(vec3(Y, IQ));
 
@@ -111,8 +119,8 @@ const VHS_FRAG = /* glsl */ `
     col = mix(col, vec3(h21(uv * res + 3.0)) * 0.8, hs * 0.55);
 
     // Scanlines, lifted blacks, warm-green tape cast.
-    col *= 0.93 + 0.07 * sin(vUv.y * res.y * 3.14159);
-    col = col * vec3(1.0, 1.0, 0.95) * 0.94 + vec3(0.03, 0.035, 0.04);
+    col *= 0.9 + 0.1 * sin(vUv.y * res.y * 3.14159);
+    col = col * vec3(1.02, 1.0, 0.93) * 0.93 + vec3(0.035, 0.04, 0.045);
     vec2 d = vUv - 0.5;
     col *= 1.0 - dot(d, d) * 0.55;
     gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
@@ -223,7 +231,7 @@ export class Developer {
     const vu = this.vhsMat.uniforms;
     vu.seed.value = opts.seed % 1000;
     const pushed = Math.max(0, Math.log2(Math.max(1, gain)) - 1);
-    vu.grain.value = opts.grain + pushed * 0.018;
+    vu.grain.value = opts.grain + 0.015 + pushed * 0.018;
     vu.tracking.value = Math.random() < 0.35 ? 0.4 + Math.random() * 0.6 : 0;
     vu.trackY.value = 0.1 + Math.random() * 0.85;
     vu.wear.value = 0.35 + Math.random() * 0.4;

@@ -1046,3 +1046,30 @@ body {
     display: none;
   }
 }
+
+/* Short landscape phones: keep the photo card clear of the touch buttons. */
+@media (max-height: 520px) {
+  #preview {
+    width: 170px;
+    bottom: auto;
+    top: 12px;
+    right: 50%;
+    margin-right: -85px;
+    transform: translateY(-160%) rotate(3deg);
+  }
+  #preview.on {
+    transform: translateY(0) rotate(-2deg);
+  }
+  #toasts {
+    bottom: 16px;
+    left: 178px;
+    max-width: calc(100vw - 460px);
+  }
+  .toast {
+    font-size: 19px;
+  }
+  #prompt {
+    top: 52%;
+    font-size: 24px;
+  }
+}

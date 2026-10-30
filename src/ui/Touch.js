@@ -17,16 +17,16 @@ export class Touch {
     const el = this.el;
     el.innerHTML = `
       <div class="stick"><div class="knob"></div></div>
-      <button class="tb big" data-act="shoot" style="right:22px;bottom:120px">SNAP</button>
-      <button class="tb" data-toggle="aimToggle" style="right:118px;bottom:150px">CAM</button>
-      <button class="tb" data-hold="zoomIn" style="right:22px;bottom:214px">ZM+</button>
-      <button class="tb" data-hold="zoomOut" style="right:92px;bottom:214px">ZM-</button>
-      <button class="tb" data-act="interact" style="right:118px;bottom:84px">USE</button>
-      <button class="tb" data-hold="sprint" style="right:22px;bottom:40px">RUN</button>
-      <button class="tb" data-act="flashMode" style="right:92px;bottom:20px">FLASH</button>
-      <button class="tb" data-act="flashlight" style="left:28px;bottom:176px">TORCH</button>
-      <button class="tb" data-act="album" style="right:22px;top:110px">ALBUM</button>
-      <button class="tb" data-act="pause" style="right:92px;top:110px">MENU</button>
+      <button class="tb big" data-act="shoot" style="right:18px;bottom:18px">SNAP</button>
+      <button class="tb" data-toggle="aimToggle" style="right:112px;bottom:22px">CAM</button>
+      <button class="tb" data-act="interact" style="right:112px;bottom:86px">USE</button>
+      <button class="tb" data-act="flashMode" style="right:186px;bottom:22px">FLASH</button>
+      <button class="tb" data-hold="zoomIn" style="right:18px;bottom:112px">ZM+</button>
+      <button class="tb" data-hold="zoomOut" style="right:18px;bottom:170px">ZM-</button>
+      <button class="tb" data-hold="sprint" style="left:28px;bottom:168px">RUN</button>
+      <button class="tb" data-act="flashlight" style="left:100px;bottom:168px">TORCH</button>
+      <button class="tb" data-act="album" style="right:18px;top:104px">ALBUM</button>
+      <button class="tb" data-act="pause" style="right:90px;top:104px">MENU</button>
     `;
     const stick = el.querySelector('.stick');
     const knob = el.querySelector('.knob');
